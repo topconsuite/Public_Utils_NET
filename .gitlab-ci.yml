@@ -1,0 +1,18 @@
+variables:
+  PROJECT_FOLDER: 'Telluria.Utils/Telluria.Utils.csproj'
+
+stages:
+  - Generate package
+  - Push in Nuget
+
+Generate package:
+  stage: Generate package
+  script:
+    - 'dotnet pack "$env:PROJECT_FOLDER" -c Release -o out'
+
+Push in Nuget:
+    stage: Push in Nuget
+    script: 
+    - 'cd out'
+    - 'dotnet nuget push *.nupkg --api-key "$env:NUGET_API_KEY" --source "$env:NUGET_SERVER" --skip-dupicate'
+
