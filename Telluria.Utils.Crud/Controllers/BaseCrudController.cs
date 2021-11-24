@@ -28,28 +28,30 @@ namespace Telluria.Utils.Crud.Controllers
         public virtual async Task<IActionResult> List([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromQuery] EntityRequestQuery<TEntity> query = null)
         {
             var result = await handler.HandleAsync(new BaseListCommand<TEntity>(query.Page, query.PerPage, query.GetFilter(), query.GetIncludes()));
-            return Ok(_entityToDTOMapper.Map(result));
+            return result.Success ? Ok(_entityToDTOMapper.Map(result)) : BadRequest(result);
         }
 
         [HttpGet("all")]
         public virtual async Task<IActionResult> ListAll([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromQuery] EntityRequestQuery<TEntity> query = null)
         {
             var result = await handler.HandleAsync(new BaseListAllCommand<TEntity>(query.Page, query.PerPage, query.GetFilter(), query.GetIncludes()));
-            return Ok(_entityToDTOMapper.Map(result));
+            return result.Success ? Ok(_entityToDTOMapper.Map(result)) : BadRequest(result);
         }
 
         [HttpGet("find")]
         public virtual async Task<IActionResult> Find([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromQuery] EntityRequestQuery<TEntity> query = null)
         {
             var result = await handler.HandleAsync(new BaseFindCommand<TEntity>(query.GetFilter(), query.GetIncludes()));
-            return Ok(_entityToDTOMapper.Map(result));
+            if (result.Success && result.Data == null) return NotFound(result);
+            return result.Success ? Ok(_entityToDTOMapper.Map(result)) : BadRequest(result);
         }
 
         [HttpGet("{id}")]
         public virtual async Task<IActionResult> Get([FromServices] IBaseCrudCommandHandler<TEntity> handler, Guid id, [FromQuery] EntityRequestQuery<TEntity> query = null)
         {
             var result = await handler.HandleAsync(new BaseGetCommand<TEntity>(id, query.GetIncludes()));
-            return Ok(_entityToDTOMapper.Map(result));
+            if (result.Success && result.Data == null) return NotFound(result);
+            return result.Success ? Ok(_entityToDTOMapper.Map(result)) : BadRequest(result);
         }
 
         [HttpPost]
@@ -60,7 +62,7 @@ namespace Telluria.Utils.Crud.Controllers
 
             var entity = _dtoToEntityMapper.Map(payload);
             var result = await handler.HandleAsync(new BaseCreateCommand<TEntity>(entity));
-            return Created($"{this.Request.Path}/{entity.Id}", _entityToDTOMapper.Map(result));
+            return result.Success ? Created($"{this.Request.Path}/{entity.Id}", _entityToDTOMapper.Map(result)) : BadRequest(result);
         }
 
         [HttpPost("many")]
@@ -73,7 +75,7 @@ namespace Telluria.Utils.Crud.Controllers
             var entities = payload.Select(t => _dtoToEntityMapper.Map(t)).ToArray();
             var result = await handler.HandleAsync(new BaseCreateManyCommand<TEntity>(entities));
             var urls = entities.Select(t => $"{Request.Path}/{t.Id}");
-            return Created(string.Join(", ", urls), _entityToDTOMapper.Map(result));
+            return result.Success ? Created(string.Join(", ", urls), _entityToDTOMapper.Map(result)) : BadRequest(result);
         }
 
         [HttpPatch]
@@ -84,7 +86,7 @@ namespace Telluria.Utils.Crud.Controllers
 
             var entity = _dtoToEntityMapper.Map(payload);
             var result = await handler.HandleAsync(new BaseUpdateCommand<TEntity>(entity));
-            return Ok(result);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPatch("many")]
@@ -96,21 +98,33 @@ namespace Telluria.Utils.Crud.Controllers
 
             var entities = payload.Select(t => _dtoToEntityMapper.Map(t)).ToArray();
             var result = await handler.HandleAsync(new BaseUpdateManyCommand<TEntity>(entities));
-            return Ok(result);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        [HttpPatch("{id}")]
+        public virtual async Task<IActionResult> Patch([FromServices] IBaseCrudCommandHandler<TEntity> handler, Guid id, [FromBody] TUpdateDTO payload)
+        {
+            if (!payload.IsValid)
+                return BadRequest(new CommandResult(false, "Invalid body", payload.Notifications));
+
+            var entity = _dtoToEntityMapper.Map(payload);
+            entity.Id = id;
+            var result = await handler.HandleAsync(new BaseUpdateCommand<TEntity>(entity));
+            return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpDelete("{id}")]
         public virtual async Task<IActionResult> SoftDelete([FromServices] IBaseCrudCommandHandler<TEntity> handler, Guid id)
         {
             var result = await handler.HandleAsync(new BaseSoftDeleteCommand<TEntity>(id));
-            return Ok(result);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpDelete("{id}/permanently")]
         public virtual async Task<IActionResult> Remove([FromServices] IBaseCrudCommandHandler<TEntity> handler, Guid id)
         {
             var result = await handler.HandleAsync(new BaseRemoveCommand<TEntity>(id));
-            return Ok(result);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
     }
 
@@ -135,35 +149,37 @@ namespace Telluria.Utils.Crud.Controllers
         public virtual async Task<IActionResult> List([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromQuery] EntityRequestQuery<TEntity> query = null)
         {
             var result = await handler.HandleAsync(new BaseListCommand<TEntity>(query.Page, query.PerPage, query.GetFilter(), query.GetIncludes()));
-            return Ok(result);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpGet("all")]
         public virtual async Task<IActionResult> ListAll([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromQuery] EntityRequestQuery<TEntity> query = null)
         {
             var result = await handler.HandleAsync(new BaseListAllCommand<TEntity>(query.Page, query.PerPage, query.GetFilter(), query.GetIncludes()));
-            return Ok(result);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpGet("find")]
         public virtual async Task<IActionResult> Find([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromQuery] EntityRequestQuery<TEntity> query = null)
         {
             var result = await handler.HandleAsync(new BaseFindCommand<TEntity>(query.GetFilter(), query.GetIncludes()));
-            return Ok(result);
+            if (result.Success && result.Data == null) return NotFound(result);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpGet("{id}")]
         public virtual async Task<IActionResult> Get([FromServices] IBaseCrudCommandHandler<TEntity> handler, Guid id, [FromQuery] EntityRequestQuery<TEntity> query = null)
         {
             var result = await handler.HandleAsync(new BaseGetCommand<TEntity>(id, query.GetIncludes()));
-            return Ok(result);
+            if (result.Success && result.Data == null) return NotFound(result);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPost]
         public virtual async Task<IActionResult> Post([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromBody] TEntity entity)
         {
             var result = await handler.HandleAsync(new BaseCreateCommand<TEntity>(entity));
-            return Created($"{this.Request.Path}/{entity.Id}", result);
+            return result.Success ? Created($"{this.Request.Path}/{entity.Id}", result) : BadRequest(result);
         }
 
         [HttpPost("many")]
@@ -171,35 +187,43 @@ namespace Telluria.Utils.Crud.Controllers
         {
             var result = await handler.HandleAsync(new BaseCreateManyCommand<TEntity>(entities));
             var urls = entities.Select(t => $"{Request.Path}/{t.Id}");
-            return Created(string.Join(", ", urls), result);
+            return result.Success ? Created(string.Join(", ", urls), result) : BadRequest(result);
         }
 
         [HttpPatch]
         public virtual async Task<IActionResult> Patch([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromBody] TEntity entity)
         {
             var result = await handler.HandleAsync(new BaseUpdateCommand<TEntity>(entity));
-            return Ok(result);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpPatch("many")]
         public virtual async Task<IActionResult> PatchMany([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromBody] params TEntity[] entities)
         {
             var result = await handler.HandleAsync(new BaseUpdateManyCommand<TEntity>(entities));
-            return Ok(result);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+        [HttpPatch("{id}")]
+        public virtual async Task<IActionResult> Patch([FromServices] IBaseCrudCommandHandler<TEntity> handler, Guid id, [FromBody] TEntity entity)
+        {
+            entity.Id = id;
+            var result = await handler.HandleAsync(new BaseUpdateCommand<TEntity>(entity));
+            return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpDelete("{id}")]
         public virtual async Task<IActionResult> SoftDelete([FromServices] IBaseCrudCommandHandler<TEntity> handler, Guid id)
         {
             var result = await handler.HandleAsync(new BaseSoftDeleteCommand<TEntity>(id));
-            return Ok(result);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
 
         [HttpDelete("{id}/permanently")]
         public virtual async Task<IActionResult> Remove([FromServices] IBaseCrudCommandHandler<TEntity> handler, Guid id)
         {
             var result = await handler.HandleAsync(new BaseRemoveCommand<TEntity>(id));
-            return Ok(result);
+            return result.Success ? Ok(result) : BadRequest(result);
         }
     }
 }

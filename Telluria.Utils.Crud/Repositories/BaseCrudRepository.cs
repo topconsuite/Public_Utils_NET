@@ -34,10 +34,15 @@ namespace Telluria.Utils.Crud.Repositories
         public virtual async Task AddAsync<TSpecificEntity>(params TSpecificEntity[] entities)
             where TSpecificEntity : BaseEntity
         {
-            foreach (var entity in entities)
-                entity.CreatedAt = DateTime.Now.ToUniversalTime();
+            var now = DateTime.Now.ToUniversalTime();
 
-            DbSet<TSpecificEntity>().AddRange(entities);
+            var taskList = entities.Select(entity => Task.Run(() => {
+                entity.CreatedAt = now;
+            }));
+
+            await Task.WhenAll(taskList);
+
+            await Task.Run(() => DbSet<TSpecificEntity>().AddRange(entities));
         }
 
         public virtual async Task UpdateAsync(params TEntity[] entities)
@@ -48,10 +53,17 @@ namespace Telluria.Utils.Crud.Repositories
         public virtual async Task UpdateAsync<TSpecificEntity>(params TSpecificEntity[] entities)
             where TSpecificEntity : BaseEntity
         {
-            foreach (var entity in entities)
-                entity.UpdatedAt = DateTime.Now.ToUniversalTime();
+            var now = DateTime.Now.ToUniversalTime();
 
-            DbSet<TSpecificEntity>().UpdateRange(entities);
+            var taskList = entities.Select(async entity => {
+                if(entity.Id == Guid.Empty) throw new Exception($"Id '{entity.Id}' not found");
+                var oldEntity = await GetAsync(entity.Id);
+                if (oldEntity == null) throw new Exception($"Id '{entity.Id}' not found");
+                entity.UpdatedAt = now;
+            });
+            await Task.WhenAll(taskList);
+
+            await Task.Run(() => DbSet<TSpecificEntity>().UpdateRange(entities));
         }
 
         /// <summary>
@@ -68,13 +80,18 @@ namespace Telluria.Utils.Crud.Repositories
         public virtual async Task SoftDeleteAsync<TSpecificEntity>(params TSpecificEntity[] entities)
             where TSpecificEntity : BaseEntity
         {
-            foreach (var entity in entities)
-            {
-                entity.DeletedAt = DateTime.Now.ToUniversalTime();
-                entity.Deleted = true;
-            }
+            var now = DateTime.Now.ToUniversalTime();
 
-            DbSet<TSpecificEntity>().UpdateRange(entities);
+            var taskList = entities.Select(async entity => {
+                if (entity.Id == Guid.Empty) throw new Exception($"Id '{entity.Id}' not found");
+                var oldEntity = await GetAsync(entity.Id);
+                if (oldEntity == null) throw new Exception($"Id '{entity.Id}' not found");
+                entity.DeletedAt = now;
+                entity.Deleted = true;
+            });
+            await Task.WhenAll(taskList);
+
+            await Task.Run(() => DbSet<TSpecificEntity>().UpdateRange(entities));
         }
 
         /// <summary>
@@ -91,7 +108,7 @@ namespace Telluria.Utils.Crud.Repositories
         public virtual async Task RemoveAsync<TSpecificEntity>(params TSpecificEntity[] entities)
             where TSpecificEntity : BaseEntity
         {
-            DbSet<TSpecificEntity>().RemoveRange(entities);
+            await Task.Run(() => DbSet<TSpecificEntity>().RemoveRange(entities));
         }
 
         public virtual async Task<TEntity> GetAsync(Guid id, bool tracking = false, params string[] includeProperties)
@@ -201,6 +218,8 @@ namespace Telluria.Utils.Crud.Repositories
 
         public async Task Commit()
         {
+            Exception shouldThrow = null;
+
             try
             {
                 await _context.SaveChangesAsync();
@@ -208,8 +227,10 @@ namespace Telluria.Utils.Crud.Repositories
             catch (Exception e)
             {
                 await _context.DisposeAsync();
-                throw e;
+                shouldThrow = e;
             }
+
+            if (shouldThrow != null) throw shouldThrow;
         }
     }
 
