@@ -1,5 +1,8 @@
+default:
+  image: mcr.microsoft.com/dotnet/sdk:6.0
+
 variables:
-  PROJECT_FOLDER: 'Telluria.Utils/Telluria.Utils.csproj'
+  PROJECT_FOLDER: "Telluria.Utils/Telluria.Utils.csproj"
 
 stages:
   - Generate package
@@ -11,8 +14,7 @@ Generate package:
     - 'dotnet pack "$env:PROJECT_FOLDER" -c Release -o out'
 
 Push in Nuget:
-    stage: Push in Nuget
-    script: 
-    - 'cd out'
+  stage: Push in Nuget
+  script:
+    - "cd out"
     - 'dotnet nuget push *.nupkg --api-key "$env:NUGET_API_KEY" --source "$env:NUGET_SERVER" --skip-dupicate'
-
