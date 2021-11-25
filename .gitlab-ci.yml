@@ -32,7 +32,7 @@ Sonarqube analyze:
   cache:
     key: "${CI_JOB_NAME}"
     paths:
-      - '"$env:PROJECT_FOLDER"/.sonar/cache'
+      - "Telluria.Utils.Crud/.sonar/cache"
   script:
     - "wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb"
     - "dpkg -i packages-microsoft-prod.deb"
@@ -42,7 +42,7 @@ Sonarqube analyze:
     - "apt-get install --yes openjdk-11-jre"
     - "dotnet tool install --global dotnet-sonarscanner"
     - 'export PATH="$PATH:$HOME/.dotnet/tools"'
-    - 'cd "$env:PROJECT_FOLDER"'
+    - "cd Telluria.Utils.Crud"
     - 'dotnet sonarscanner begin /k:\"Telluria-Utils-.NET\" /d:sonar.login=\"$SONAR_TOKEN\" /d:\"sonar.host.url=$SONAR_HOST_URL\"'
     - "dotnet build"
     - 'dotnet sonarscanner end /d:sonar.login=\"$SONAR_TOKEN\"'
@@ -52,6 +52,7 @@ Generate package:
   extends: .base-rules
   needs: ["Sonarqube analyze"]
   script:
+    - "cd Telluria.Utils.Crud"
     - "rm -R package"
     - 'dotnet pack "$env:PROJECT_CSPROJ" -c Release -o package'
   allow_failure: true
@@ -60,6 +61,6 @@ Push in Nuget:
   extends: .base-rules
   needs: ["Generate package"]
   script:
-    - "cd package"
+    - "cd Telluria.Utils.Crud/package"
     - 'dotnet nuget push *.nupkg --api-key "$env:NUGET_API_KEY" --source "$env:NUGET_SERVER" --skip-duplicate'
   allow_failure: true
