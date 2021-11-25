@@ -2,18 +2,34 @@ default:
   image: mcr.microsoft.com/dotnet/sdk:6.0
 
 variables:
-  PROJECT_FOLDER: "Telluria.Utils/Telluria.Utils.csproj"
+  PROJECT_FOLDER: "Telluria.Utils.Crud/Telluria.Utils.Crud.csproj"
+
+.base-rules:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+      when: never
+    - if: $CI_COMMIT_TAG
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - $RULES_CHANGES_PATH
+    - when: manual
+      allow_failure: true
 
 stages:
   - Generate package
   - Push in Nuget
 
 Generate package:
+  extends: .base-rules
   stage: Generate package
   script:
     - 'dotnet pack "$env:PROJECT_FOLDER" -c Release -o out'
 
 Push in Nuget:
+  extends: .base-rules
   stage: Push in Nuget
   script:
     - "cd out"
