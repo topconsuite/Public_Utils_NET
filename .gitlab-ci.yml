@@ -54,5 +54,7 @@ Nuget package:
     - "cd Telluria.Utils.Crud"
     - "rm -R package 2> /dev/null"
     - "dotnet pack Telluria.Utils.Crud.csproj -c Release -o package"
+    - "cd package"
+    - "ls"
     - 'dotnet nuget push *.nupkg --api-key "$NUGET_API_KEY" --source "$NUGET_SERVER" --skip-duplicate'
   allow_failure: true
