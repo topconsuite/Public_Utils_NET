@@ -1,10 +1,13 @@
 default:
   image: mcr.microsoft.com/dotnet/sdk:6.0
 stages:
+  - Sonarqube analyze
   - Generate package
   - Push in Nuget
 variables:
-  PROJECT_FOLDER: "Telluria.Utils.Crud/Telluria.Utils.Crud.csproj"
+  PROJECT_CSPROJ: "Telluria.Utils.Crud/Telluria.Utils.Crud.csproj"
+  PROJECT_FOLDER: "Telluria.Utils.Crud"
+
 .base-rules:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -19,18 +22,44 @@ variables:
     - when: manual
       allow_failure: true
 
+Sonarqube analyze:
+  stage: Sonarqube analyze
+  extends: .base-rules
+  needs: []
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/Backend/.sonar" # Defines the location of the analysis task cache
+    GIT_DEPTH: "0" # Tells git to fetch all the branches of the project, required by the analysis task
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - '"$env:PROJECT_FOLDER"/.sonar/cache'
+  script:
+    - "wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb"
+    - "dpkg -i packages-microsoft-prod.deb"
+    - "rm packages-microsoft-prod.deb"
+    - "apt-get update"
+    - "apt-get install -y apt-transport-https && apt-get update && apt-get install -y dotnet-sdk-5.0"
+    - "apt-get install --yes openjdk-11-jre"
+    - "dotnet tool install --global dotnet-sonarscanner"
+    - 'export PATH="$PATH:$HOME/.dotnet/tools"'
+    - 'cd "$env:PROJECT_FOLDER"'
+    - 'dotnet sonarscanner begin /k:\"Telluria-Utils-.NET\" /d:sonar.login=\"$SONAR_TOKEN\" /d:\"sonar.host.url=$SONAR_HOST_URL\"'
+    - "dotnet build"
+    - 'dotnet sonarscanner end /d:sonar.login=\"$SONAR_TOKEN\"'
+  allow_failure: true
 Generate package:
   stage: Generate package
   extends: .base-rules
-  needs: []
+  needs: ["Sonarqube analyze"]
   script:
     - "rm -R package"
-    - "dotnet pack "$env:PROJECT_FOLDER" -c Release -o package"
-
+    - 'dotnet pack "$env:PROJECT_CSPROJ" -c Release -o package'
+  allow_failure: true
 Push in Nuget:
   stage: Push in Nuget
   extends: .base-rules
   needs: ["Generate package"]
   script:
     - "cd package"
-    - "dotnet nuget push *.nupkg --api-key "$env:NUGET_API_KEY" --source "$env:NUGET_SERVER" --skip-duplicate"
+    - 'dotnet nuget push *.nupkg --api-key "$env:NUGET_API_KEY" --source "$env:NUGET_SERVER" --skip-duplicate'
+  allow_failure: true
