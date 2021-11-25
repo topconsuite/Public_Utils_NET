@@ -43,9 +43,9 @@ Sonarqube analyze:
     - "dotnet tool install --global dotnet-sonarscanner"
     - 'export PATH="$PATH:$HOME/.dotnet/tools"'
     - "cd Telluria.Utils.Crud"
-    - 'dotnet sonarscanner begin /k:\"Telluria-Utils-.NET\" /d:sonar.login=\"$SONAR_TOKEN\" /d:\"sonar.host.url=$SONAR_HOST_URL\"'
+    - 'dotnet sonarscanner begin /k:"Telluria-Utils-.NET" /d:sonar.login="$SONAR_TOKEN" /d:"sonar.host.url=$SONAR_HOST_URL" '
     - "dotnet build"
-    - 'dotnet sonarscanner end /d:sonar.login=\"$SONAR_TOKEN\"'
+    - 'dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN"'
   allow_failure: true
 Generate package:
   stage: Generate package
@@ -53,6 +53,7 @@ Generate package:
   needs: ["Sonarqube analyze"]
   script:
     - "cd Telluria.Utils.Crud"
+    - "ls"
     - "rm -R package 2> /dev/null"
     - "dotnet pack Telluria.Utils.Crud.csproj -c Release -o package"
   allow_failure: true
@@ -62,5 +63,7 @@ Push in Nuget:
   needs: ["Generate package"]
   script:
     - "cd Telluria.Utils.Crud/package"
-    - 'dotnet nuget push *.nupkg --api-key "$NUGET_API_KEY" --source "$NUGET_SERVER" --skip-duplicate'
+    - "ls"
+    - 'echo nuget push *.nupkg --api-key "$NUGET_API_KEY" --source "$NUGET_SERVER" --skip-duplicate'
+    - 'nuget push *.nupkg --api-key "$NUGET_API_KEY" --source "$NUGET_SERVER" --skip-duplicate'
   allow_failure: true
