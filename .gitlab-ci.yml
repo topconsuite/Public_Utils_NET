@@ -53,8 +53,8 @@ Generate package:
   needs: ["Sonarqube analyze"]
   script:
     - "cd Telluria.Utils.Crud"
-    - "rm -R package"
-    - 'dotnet pack "$env:PROJECT_CSPROJ" -c Release -o package'
+    - "rm -R package 2> /dev/null"
+    - "dotnet pack Telluria.Utils.Crud.csproj -c Release -o package"
   allow_failure: true
 Push in Nuget:
   stage: Push in Nuget
@@ -62,5 +62,5 @@ Push in Nuget:
   needs: ["Generate package"]
   script:
     - "cd Telluria.Utils.Crud/package"
-    - 'dotnet nuget push *.nupkg --api-key "$env:NUGET_API_KEY" --source "$env:NUGET_SERVER" --skip-duplicate'
+    - 'dotnet nuget push *.nupkg --api-key "$NUGET_API_KEY" --source "$NUGET_SERVER" --skip-duplicate'
   allow_failure: true
