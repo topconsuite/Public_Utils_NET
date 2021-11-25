@@ -1,9 +1,10 @@
 default:
   image: mcr.microsoft.com/dotnet/sdk:6.0
-
+stages:
+  - Generate package
+  - Push in Nuget
 variables:
   PROJECT_FOLDER: "Telluria.Utils.Crud/Telluria.Utils.Crud.csproj"
-
 .base-rules:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -18,19 +19,17 @@ variables:
     - when: manual
       allow_failure: true
 
-stages:
-  - Generate package
-  - Push in Nuget
-
 Generate package:
-  extends: .base-rules
   stage: Generate package
+  extends: .base-rules
+  needs: []
   script:
     - 'dotnet pack "$env:PROJECT_FOLDER" -c Release -o out'
 
 Push in Nuget:
-  extends: .base-rules
   stage: Push in Nuget
+  extends: .base-rules
+  needs: ["Generate package"]
   script:
     - "cd out"
     - 'dotnet nuget push *.nupkg --api-key "$env:NUGET_API_KEY" --source "$env:NUGET_SERVER" --skip-dupicate'
