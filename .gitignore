@@ -5,6 +5,7 @@
 project.lock.json
 .DS_Store
 *.pyc
+.env
 
 # Visual Studio Code
 .vscode

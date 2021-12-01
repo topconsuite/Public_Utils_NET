@@ -1,4 +1,15 @@
 {
+  "name": "telluria-utils-net",
+  "description": "Utilities for working with .NET languages",
+  "license": "MIT",
+  "author": "Telluria Tecnologia",
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/t3105/telluria-utils-.net.git"
+  },
+  "keywords": [
+    "utils", "telluria", ".NET", "C#"
+  ],
   "scripts": {
     "commit": "git-cz",
     "prepare": "husky install",
