@@ -1,25 +1,38 @@
-﻿using Flunt.Notifications;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using Flunt.Notifications;
 
 namespace Telluria.Utils.Crud.CommandResults
 {
-    public interface ICommandResult
-    {
-        bool Success { get; }
-        string Message { get; }
-        IEnumerable<Notification> Notifications { get; }
-    }
+  public enum CommandResultStatus
+  {
+    [Display(Name = "SUCCESS", Description = "The command was executed successfully")]
+    SUCCESS,
 
-    public interface ICommandResult<TData> : ICommandResult
-    {
-        TData Data { get; }
-    }
+    [Display(Name = "ERROR", Description = "The command was not executed successfully")]
+    ERROR,
 
-    public interface IListCommandResult<TData> : ICommandResult<IEnumerable<TData>>
-    {
-        uint Page { get; }
-        uint PerPage { get; }
-        uint PageCount { get; }
-        ulong TotalCount { get; }
-    }
+    [Display(Name = "ALERT", Description = "The command was executed successfully but there are some alerts")]
+    ALERT
+  }
+
+  public interface ICommandResult
+  {
+    CommandResultStatus Status { get; }
+    string Message { get; }
+    IEnumerable<Notification> Notifications { get; }
+  }
+
+  public interface ICommandResult<TResult> : ICommandResult
+  {
+    TResult Result { get; }
+  }
+
+  public interface IListCommandResult<TResult> : ICommandResult<IEnumerable<TResult>>
+  {
+    uint Page { get; }
+    uint PerPage { get; }
+    uint PageCount { get; }
+    ulong TotalCount { get; }
+  }
 }

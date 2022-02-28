@@ -21,11 +21,11 @@ namespace Telluria.Utils.Crud.Handlers
       try
       {
         var result = await _repository.ListAsync(command.Page, command.PerPage, false, command.Where, command.Includes);
-        return new ListCommandResult<TEntity>(true, "List command executed with success", result, null);
+        return new ListCommandResult<TEntity>(CommandResultStatus.SUCCESS, "List command executed with success", result, null);
       }
       catch (System.Exception e)
       {
-        return new ListCommandResult<TEntity>(false, e.Message, null, null);
+        return new ListCommandResult<TEntity>(CommandResultStatus.ERROR, e.Message, null, null);
       }
     }
 
@@ -34,11 +34,11 @@ namespace Telluria.Utils.Crud.Handlers
       try
       {
         var result = await _repository.ListAllAsync(command.Page, command.PerPage, false, command.Where, command.Includes);
-        return new ListCommandResult<TEntity>(true, "ListAll command executed with success", result, null);
+        return new ListCommandResult<TEntity>(CommandResultStatus.SUCCESS, "ListAll command executed with success", result, null);
       }
       catch (System.Exception e)
       {
-        return new ListCommandResult<TEntity>(false, e.Message, null, null);
+        return new ListCommandResult<TEntity>(CommandResultStatus.ERROR, e.Message, null, null);
       }
     }
 
@@ -48,11 +48,11 @@ namespace Telluria.Utils.Crud.Handlers
       {
         var result = await _repository.GetAsync(command.Id, false, command.Includes);
         var message = result != null ? "Get command executed with success" : $"Id '{command.Id}' not found";
-        return new CommandResult<TEntity>(true, message, result, null);
+        return new CommandResult<TEntity>(CommandResultStatus.SUCCESS, message, result, null);
       }
       catch (System.Exception e)
       {
-        return new CommandResult<TEntity>(false, e.Message, null, null);
+        return new CommandResult<TEntity>(CommandResultStatus.ERROR, e.Message, null, null);
       }
     }
 
@@ -62,11 +62,11 @@ namespace Telluria.Utils.Crud.Handlers
       {
         await _repository.AddAsync(command.Data);
         await _repository.Commit();
-        return new CommandResult<TEntity>(true, "Post command executed with success", command.Data, null);
+        return new CommandResult<TEntity>(CommandResultStatus.SUCCESS, "Post command executed with success", command.Data, null);
       }
       catch (System.Exception e)
       {
-        return new CommandResult<TEntity>(false, e.Message, null, null);
+        return new CommandResult<TEntity>(CommandResultStatus.ERROR, e.Message, null, null);
       }
     }
 
@@ -76,11 +76,11 @@ namespace Telluria.Utils.Crud.Handlers
       {
         await _repository.AddAsync(command.Data);
         await _repository.Commit();
-        return new CommandResult<IEnumerable<TEntity>>(true, "PostMany command executed with success", command.Data, null);
+        return new CommandResult<IEnumerable<TEntity>>(CommandResultStatus.SUCCESS, "PostMany command executed with success", command.Data, null);
       }
       catch (System.Exception e)
       {
-        return new CommandResult<IEnumerable<TEntity>>(false, e.Message, null, null);
+        return new CommandResult<IEnumerable<TEntity>>(CommandResultStatus.ERROR, e.Message, null, null);
       }
     }
 
@@ -90,11 +90,11 @@ namespace Telluria.Utils.Crud.Handlers
       {
         await _repository.UpdateAsync(command.Data);
         await _repository.Commit();
-        return new CommandResult(true, "Patch command executed with success", null);
+        return new CommandResult(CommandResultStatus.SUCCESS, "Patch command executed with success", null);
       }
       catch (System.Exception e)
       {
-        return new CommandResult(false, e.Message, null);
+        return new CommandResult(CommandResultStatus.ERROR, e.Message, null);
       }
     }
 
@@ -105,11 +105,11 @@ namespace Telluria.Utils.Crud.Handlers
         var entity = await _repository.GetAsync(command.Id);
         await _repository.SoftDeleteAsync(entity);
         await _repository.Commit();
-        return new CommandResult(true, "SoftDelete command executed with success", null);
+        return new CommandResult(CommandResultStatus.SUCCESS, "SoftDelete command executed with success", null);
       }
       catch (System.Exception e)
       {
-        return new CommandResult(false, e.Message, null);
+        return new CommandResult(CommandResultStatus.ERROR, e.Message, null);
       }
     }
 
@@ -120,11 +120,11 @@ namespace Telluria.Utils.Crud.Handlers
         var entity = await _repository.GetAsync(command.Id);
         await _repository.RemoveAsync(entity);
         await _repository.Commit();
-        return new CommandResult(true, "Remove command executed with success", null);
+        return new CommandResult(CommandResultStatus.SUCCESS, "Remove command executed with success", null);
       }
       catch (System.Exception e)
       {
-        return new CommandResult(false, e.Message, null);
+        return new CommandResult(CommandResultStatus.ERROR, e.Message, null);
       }
     }
 
@@ -134,11 +134,11 @@ namespace Telluria.Utils.Crud.Handlers
       {
         var result = await _repository.FindAsync(false, command.Where, command.Includes);
         var message = result != null ? "Find command executed with success" : "Not found";
-        return new CommandResult<TEntity>(true, message, result, null);
+        return new CommandResult<TEntity>(CommandResultStatus.SUCCESS, message, result, null);
       }
       catch (System.Exception e)
       {
-        return new CommandResult<TEntity>(false, e.Message, null, null);
+        return new CommandResult<TEntity>(CommandResultStatus.ERROR, e.Message, null, null);
       }
     }
   }
