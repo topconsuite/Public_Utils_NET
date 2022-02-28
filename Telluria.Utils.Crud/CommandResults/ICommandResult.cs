@@ -20,6 +20,7 @@ namespace Telluria.Utils.Crud.CommandResults
   {
     CommandResultStatus Status { get; }
     string Message { get; }
+    string ErrorCode { get; }
     IEnumerable<Notification> Notifications { get; }
   }
 

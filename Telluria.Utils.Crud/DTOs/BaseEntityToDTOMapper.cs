@@ -18,7 +18,7 @@ namespace Telluria.Utils.Crud.DTOs
 
     public ICommandResult<TDTO> Map(ICommandResult<TEntity> commandResult)
     {
-      return new CommandResult<TDTO>(commandResult.Status, commandResult.Message, Map(commandResult.Result), commandResult.Notifications);
+      return new CommandResult<TDTO>(commandResult.Status, commandResult.Message, Map(commandResult.Result), commandResult.ErrorCode, commandResult.Notifications);
     }
 
     public ICommandResult<IEnumerable<TDTO>> Map(ICommandResult<IEnumerable<TEntity>> commandResult)
@@ -27,6 +27,7 @@ namespace Telluria.Utils.Crud.DTOs
           commandResult.Status,
           commandResult.Message,
           commandResult.Result.Select(t => Map(t)),
+          commandResult.ErrorCode,
           commandResult.Notifications
       );
     }
@@ -44,6 +45,7 @@ namespace Telluria.Utils.Crud.DTOs
             TotalCount = commandResult.TotalCount,
             Records = commandResult.Result.Select(t => Map(t)),
           },
+          commandResult.ErrorCode,
           commandResult.Notifications
       );
     }
