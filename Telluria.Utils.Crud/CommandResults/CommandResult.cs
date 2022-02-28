@@ -1,53 +1,48 @@
-﻿using Flunt.Notifications;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Flunt.Notifications;
 using Telluria.Utils.Crud.Lists;
 
 namespace Telluria.Utils.Crud.CommandResults
 {
-    public class CommandResult : ICommandResult
+  public class CommandResult : ICommandResult
+  {
+    public CommandResultStatus Status { get; }
+    public string Message { get; }
+    public IEnumerable<Notification> Notifications { get; }
+
+    public CommandResult(CommandResultStatus status, string message, IEnumerable<Notification> notifications)
     {
-        public bool Success { get; }
-
-        public string Message { get; }
-
-        public IEnumerable<Notification> Notifications { get; }
-
-        public CommandResult(bool success, string message, IEnumerable<Notification> notifications)
-        {
-            Success = success;
-            Message = message;
-            Notifications = notifications;
-        }
+      Status = status;
+      Message = message;
+      Notifications = notifications;
     }
+  }
 
-    public class CommandResult<TData> : CommandResult, ICommandResult<TData>
+  public class CommandResult<TResult> : CommandResult, ICommandResult<TResult>
+  {
+    public TResult Result { get; }
+
+    public CommandResult(CommandResultStatus status, string message, TResult result, IEnumerable<Notification> notifications)
+        : base(status, message, notifications)
     {
-        public TData Data { get; }
-
-        public CommandResult(bool success, string message, TData data, IEnumerable<Notification> notifications)
-            : base(success, message, notifications)
-        {
-            Data = data;
-        }
+      Result = result;
     }
+  }
 
-    public class ListCommandResult<TData> : CommandResult<IEnumerable<TData>>, IListCommandResult<TData>
+  public class ListCommandResult<TResult> : CommandResult<IEnumerable<TResult>>, IListCommandResult<TResult>
+  {
+    public uint Page { get; }
+    public uint PerPage { get; }
+    public uint PageCount { get; }
+    public ulong TotalCount { get; }
+
+    public ListCommandResult(CommandResultStatus status, string message, PagedList<TResult> pagedEntityList, IEnumerable<Notification> notifications)
+        : base(status, message, pagedEntityList.Records, notifications)
     {
-        public uint Page { get; }
-
-        public uint PerPage { get; }
-
-        public uint PageCount { get; }
-
-        public ulong TotalCount { get; }
-
-        public ListCommandResult(bool success, string message, PagedList<TData> pagedEntityList, IEnumerable<Notification> notifications)
-            : base(success, message, pagedEntityList.Records, notifications)
-        {
-            Page = pagedEntityList.Page;
-            PerPage = pagedEntityList.PerPage;
-            PageCount = pagedEntityList.PageCount;
-            TotalCount = pagedEntityList.TotalCount;
-        }
+      Page = pagedEntityList.Page;
+      PerPage = pagedEntityList.PerPage;
+      PageCount = pagedEntityList.PageCount;
+      TotalCount = pagedEntityList.TotalCount;
     }
+  }
 }

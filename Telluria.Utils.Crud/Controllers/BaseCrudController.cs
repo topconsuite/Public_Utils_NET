@@ -28,41 +28,41 @@ namespace Telluria.Utils.Crud.Controllers
     public virtual async Task<IActionResult> List([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromQuery] EntityRequestQuery<TEntity> query = null)
     {
       var result = await handler.HandleAsync(new BaseListCommand<TEntity>(query.Page, query.PerPage, query.GetFilter(), query.GetIncludes()));
-      return result.Success ? Ok(_entityToDTOMapper.Map(result)) : BadRequest(result);
+      return result.Status == CommandResultStatus.SUCCESS ? Ok(_entityToDTOMapper.Map(result)) : BadRequest(result);
     }
 
     [HttpGet("all")]
     public virtual async Task<IActionResult> ListAll([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromQuery] EntityRequestQuery<TEntity> query = null)
     {
       var result = await handler.HandleAsync(new BaseListAllCommand<TEntity>(query.Page, query.PerPage, query.GetFilter(), query.GetIncludes()));
-      return result.Success ? Ok(_entityToDTOMapper.Map(result)) : BadRequest(result);
+      return result.Status == CommandResultStatus.SUCCESS ? Ok(_entityToDTOMapper.Map(result)) : BadRequest(result);
     }
 
     [HttpGet("find")]
     public virtual async Task<IActionResult> Find([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromQuery] EntityRequestQuery<TEntity> query = null)
     {
       var result = await handler.HandleAsync(new BaseFindCommand<TEntity>(query.GetFilter(), query.GetIncludes()));
-      if (result.Success && result.Data == null) return NotFound(result);
-      return result.Success ? Ok(_entityToDTOMapper.Map(result)) : BadRequest(result);
+      if (result.Status == CommandResultStatus.SUCCESS && result.Result == null) return NotFound(result);
+      return result.Status == CommandResultStatus.SUCCESS ? Ok(_entityToDTOMapper.Map(result)) : BadRequest(result);
     }
 
     [HttpGet("{id}")]
     public virtual async Task<IActionResult> Get([FromServices] IBaseCrudCommandHandler<TEntity> handler, Guid id, [FromQuery] EntityRequestQuery<TEntity> query = null)
     {
       var result = await handler.HandleAsync(new BaseGetCommand<TEntity>(id, query.GetIncludes()));
-      if (result.Success && result.Data == null) return NotFound(result);
-      return result.Success ? Ok(_entityToDTOMapper.Map(result)) : BadRequest(result);
+      if (result.Status == CommandResultStatus.SUCCESS && result.Result == null) return NotFound(result);
+      return result.Status == CommandResultStatus.SUCCESS ? Ok(_entityToDTOMapper.Map(result)) : BadRequest(result);
     }
 
     [HttpPost]
     public virtual async Task<IActionResult> Post([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromBody] TCreateDTO payload)
     {
       if (!payload.IsValid)
-        return BadRequest(new CommandResult(false, "Invalid body", payload.Notifications));
+        return BadRequest(new CommandResult(CommandResultStatus.ALERT, "Invalid body", payload.Notifications));
 
       var entity = _dtoToEntityMapper.Map(payload);
       var result = await handler.HandleAsync(new BaseCreateCommand<TEntity>(entity));
-      return result.Success ? Created($"{this.Request.Path}/{entity.Id}", _entityToDTOMapper.Map(result)) : BadRequest(result);
+      return result.Status == CommandResultStatus.SUCCESS ? Created($"{this.Request.Path}/{entity.Id}", _entityToDTOMapper.Map(result)) : BadRequest(result);
     }
 
     [HttpPost("many")]
@@ -70,38 +70,38 @@ namespace Telluria.Utils.Crud.Controllers
     {
       var invalidList = payload.Where(t => !t.IsValid);
       if (invalidList.Count() > 0)
-        return BadRequest(new CommandResult(false, "Invalid body", invalidList.Select(t => t.Notifications).First()));
+        return BadRequest(new CommandResult(CommandResultStatus.ALERT, "Invalid body", invalidList.Select(t => t.Notifications).First()));
 
       var entities = payload.Select(t => _dtoToEntityMapper.Map(t)).ToArray();
       var result = await handler.HandleAsync(new BaseCreateManyCommand<TEntity>(entities));
       var urls = entities.Select(t => $"{Request.Path}/{t.Id}");
-      return result.Success ? Created(string.Join(", ", urls), _entityToDTOMapper.Map(result)) : BadRequest(result);
+      return result.Status == CommandResultStatus.SUCCESS ? Created(string.Join(", ", urls), _entityToDTOMapper.Map(result)) : BadRequest(result);
     }
 
     [HttpPatch("{id}")]
     public virtual async Task<IActionResult> Patch([FromServices] IBaseCrudCommandHandler<TEntity> handler, Guid id, [FromBody] TUpdateDTO payload)
     {
       if (!payload.IsValid)
-        return BadRequest(new CommandResult(false, "Invalid body", payload.Notifications));
+        return BadRequest(new CommandResult(CommandResultStatus.ALERT, "Invalid body", payload.Notifications));
 
       var entity = _dtoToEntityMapper.Map(payload);
       entity.Id = id;
       var result = await handler.HandleAsync(new BaseUpdateCommand<TEntity>(entity));
-      return result.Success ? Ok(result) : BadRequest(result);
+      return result.Status == CommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
 
     [HttpDelete("{id}")]
     public virtual async Task<IActionResult> SoftDelete([FromServices] IBaseCrudCommandHandler<TEntity> handler, Guid id)
     {
       var result = await handler.HandleAsync(new BaseSoftDeleteCommand<TEntity>(id));
-      return result.Success ? Ok(result) : BadRequest(result);
+      return result.Status == CommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
 
     [HttpDelete("{id}/permanently")]
     public virtual async Task<IActionResult> Remove([FromServices] IBaseCrudCommandHandler<TEntity> handler, Guid id)
     {
       var result = await handler.HandleAsync(new BaseRemoveCommand<TEntity>(id));
-      return result.Success ? Ok(result) : BadRequest(result);
+      return result.Status == CommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
   }
 
@@ -126,37 +126,37 @@ namespace Telluria.Utils.Crud.Controllers
     public virtual async Task<IActionResult> List([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromQuery] EntityRequestQuery<TEntity> query = null)
     {
       var result = await handler.HandleAsync(new BaseListCommand<TEntity>(query.Page, query.PerPage, query.GetFilter(), query.GetIncludes()));
-      return result.Success ? Ok(result) : BadRequest(result);
+      return result.Status == CommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
 
     [HttpGet("all")]
     public virtual async Task<IActionResult> ListAll([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromQuery] EntityRequestQuery<TEntity> query = null)
     {
       var result = await handler.HandleAsync(new BaseListAllCommand<TEntity>(query.Page, query.PerPage, query.GetFilter(), query.GetIncludes()));
-      return result.Success ? Ok(result) : BadRequest(result);
+      return result.Status == CommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
 
     [HttpGet("find")]
     public virtual async Task<IActionResult> Find([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromQuery] EntityRequestQuery<TEntity> query = null)
     {
       var result = await handler.HandleAsync(new BaseFindCommand<TEntity>(query.GetFilter(), query.GetIncludes()));
-      if (result.Success && result.Data == null) return NotFound(result);
-      return result.Success ? Ok(result) : BadRequest(result);
+      if (result.Status == CommandResultStatus.SUCCESS && result.Result == null) return NotFound(result);
+      return result.Status == CommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
 
     [HttpGet("{id}")]
     public virtual async Task<IActionResult> Get([FromServices] IBaseCrudCommandHandler<TEntity> handler, Guid id, [FromQuery] EntityRequestQuery<TEntity> query = null)
     {
       var result = await handler.HandleAsync(new BaseGetCommand<TEntity>(id, query.GetIncludes()));
-      if (result.Success && result.Data == null) return NotFound(result);
-      return result.Success ? Ok(result) : BadRequest(result);
+      if (result.Status == CommandResultStatus.SUCCESS && result.Result == null) return NotFound(result);
+      return result.Status == CommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
 
     [HttpPost]
     public virtual async Task<IActionResult> Post([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromBody] TEntity entity)
     {
       var result = await handler.HandleAsync(new BaseCreateCommand<TEntity>(entity));
-      return result.Success ? Created($"{this.Request.Path}/{entity.Id}", result) : BadRequest(result);
+      return result.Status == CommandResultStatus.SUCCESS ? Created($"{this.Request.Path}/{entity.Id}", result) : BadRequest(result);
     }
 
     [HttpPost("many")]
@@ -164,7 +164,7 @@ namespace Telluria.Utils.Crud.Controllers
     {
       var result = await handler.HandleAsync(new BaseCreateManyCommand<TEntity>(entities));
       var urls = entities.Select(t => $"{Request.Path}/{t.Id}");
-      return result.Success ? Created(string.Join(", ", urls), result) : BadRequest(result);
+      return result.Status == CommandResultStatus.SUCCESS ? Created(string.Join(", ", urls), result) : BadRequest(result);
     }
 
     [HttpPatch("{id}")]
@@ -172,21 +172,21 @@ namespace Telluria.Utils.Crud.Controllers
     {
       entity.Id = id;
       var result = await handler.HandleAsync(new BaseUpdateCommand<TEntity>(entity));
-      return result.Success ? Ok(result) : BadRequest(result);
+      return result.Status == CommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
 
     [HttpDelete("{id}")]
     public virtual async Task<IActionResult> SoftDelete([FromServices] IBaseCrudCommandHandler<TEntity> handler, Guid id)
     {
       var result = await handler.HandleAsync(new BaseSoftDeleteCommand<TEntity>(id));
-      return result.Success ? Ok(result) : BadRequest(result);
+      return result.Status == CommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
 
     [HttpDelete("{id}/permanently")]
     public virtual async Task<IActionResult> Remove([FromServices] IBaseCrudCommandHandler<TEntity> handler, Guid id)
     {
       var result = await handler.HandleAsync(new BaseRemoveCommand<TEntity>(id));
-      return result.Success ? Ok(result) : BadRequest(result);
+      return result.Status == CommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
   }
 }
