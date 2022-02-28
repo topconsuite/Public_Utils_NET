@@ -58,7 +58,7 @@ namespace Telluria.Utils.Crud.Controllers
     public virtual async Task<IActionResult> Post([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromBody] TCreateDTO payload)
     {
       if (!payload.IsValid)
-        return BadRequest(new CommandResult(CommandResultStatus.ALERT, "Invalid body", payload.Notifications));
+        return BadRequest(new CommandResult(CommandResultStatus.ALERT, "Invalid body", null, payload.Notifications));
 
       var entity = _dtoToEntityMapper.Map(payload);
       var result = await handler.HandleAsync(new BaseCreateCommand<TEntity>(entity));
@@ -70,7 +70,7 @@ namespace Telluria.Utils.Crud.Controllers
     {
       var invalidList = payload.Where(t => !t.IsValid);
       if (invalidList.Count() > 0)
-        return BadRequest(new CommandResult(CommandResultStatus.ALERT, "Invalid body", invalidList.Select(t => t.Notifications).First()));
+        return BadRequest(new CommandResult(CommandResultStatus.ALERT, "Invalid body", null, invalidList.Select(t => t.Notifications).First()));
 
       var entities = payload.Select(t => _dtoToEntityMapper.Map(t)).ToArray();
       var result = await handler.HandleAsync(new BaseCreateManyCommand<TEntity>(entities));
@@ -82,7 +82,7 @@ namespace Telluria.Utils.Crud.Controllers
     public virtual async Task<IActionResult> Patch([FromServices] IBaseCrudCommandHandler<TEntity> handler, Guid id, [FromBody] TUpdateDTO payload)
     {
       if (!payload.IsValid)
-        return BadRequest(new CommandResult(CommandResultStatus.ALERT, "Invalid body", payload.Notifications));
+        return BadRequest(new CommandResult(CommandResultStatus.ALERT, "Invalid body", null, payload.Notifications));
 
       var entity = _dtoToEntityMapper.Map(payload);
       entity.Id = id;
