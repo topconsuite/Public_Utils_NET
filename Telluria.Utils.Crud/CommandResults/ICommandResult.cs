@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using Flunt.Notifications;
 
 namespace Telluria.Utils.Crud.CommandResults
 {
@@ -21,7 +20,7 @@ namespace Telluria.Utils.Crud.CommandResults
     CommandResultStatus Status { get; }
     string Message { get; }
     string ErrorCode { get; }
-    IEnumerable<Notification> Notifications { get; }
+    List<FluentValidation.Results.ValidationFailure> Notifications { get; }
   }
 
   public interface ICommandResult<TResult> : ICommandResult
