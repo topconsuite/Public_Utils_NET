@@ -13,7 +13,6 @@
     <PackageReference Include="AutoMapper" Version="10.1.1"/>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5"/>
     <PackageReference Include="LinqKit.Core" Version="1.1.27"/>
-    <PackageReference Include="Flunt" Version="2.0.5"/>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="6.0.0"/>
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.354"/>
     <PackageReference Include="SonarAnalyzer.CSharp" Version="8.32.0.39516"/>
