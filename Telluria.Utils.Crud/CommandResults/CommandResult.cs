@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using Flunt.Notifications;
 using Telluria.Utils.Crud.Lists;
 
 namespace Telluria.Utils.Crud.CommandResults
@@ -9,9 +8,13 @@ namespace Telluria.Utils.Crud.CommandResults
     public CommandResultStatus Status { get; }
     public string Message { get; }
     public string ErrorCode { get; }
-    public IEnumerable<Notification> Notifications { get; }
+    public IEnumerable<FluentValidation.Results.ValidationFailure> Notifications { get; }
 
-    public CommandResult(CommandResultStatus status, string message, string errorCode, IEnumerable<Notification> notifications)
+    public CommandResult(
+      CommandResultStatus status,
+      string message,
+      string errorCode,
+      IEnumerable<FluentValidation.Results.ValidationFailure> notifications)
     {
       Status = status;
       Message = message;
@@ -24,7 +27,12 @@ namespace Telluria.Utils.Crud.CommandResults
   {
     public TResult Result { get; }
 
-    public CommandResult(CommandResultStatus status, string message, TResult result, string errorCode, IEnumerable<Notification> notifications)
+    public CommandResult(
+      CommandResultStatus status,
+      string message,
+      TResult result,
+      string errorCode,
+      IEnumerable<FluentValidation.Results.ValidationFailure> notifications)
     : base(status, message, errorCode, notifications)
     {
       Result = result;
@@ -38,7 +46,12 @@ namespace Telluria.Utils.Crud.CommandResults
     public uint PageCount { get; }
     public ulong TotalCount { get; }
 
-    public ListCommandResult(CommandResultStatus status, string message, PagedList<TResult> pagedEntityList, string errorCode, IEnumerable<Notification> notifications)
+    public ListCommandResult(
+      CommandResultStatus status,
+      string message,
+      PagedList<TResult> pagedEntityList,
+      string errorCode,
+      IEnumerable<FluentValidation.Results.ValidationFailure> notifications)
     : base(status, message, pagedEntityList.Records, errorCode, notifications)
     {
       Page = pagedEntityList.Page;
