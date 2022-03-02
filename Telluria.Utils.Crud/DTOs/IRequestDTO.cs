@@ -6,7 +6,7 @@ namespace Telluria.Utils.Crud.DTOs
   public interface IRequestDTO<TEntity> where TEntity : BaseEntity
   {
     void Validate();
-    List<FluentValidation.Results.ValidationFailure> Notifications { get; }
+    IEnumerable<FluentValidation.Results.ValidationFailure> Notifications { get; }
     bool IsValid { get; }
   }
 }

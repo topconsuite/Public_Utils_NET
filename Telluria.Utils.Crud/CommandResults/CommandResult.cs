@@ -8,13 +8,13 @@ namespace Telluria.Utils.Crud.CommandResults
     public CommandResultStatus Status { get; }
     public string Message { get; }
     public string ErrorCode { get; }
-    public List<FluentValidation.Results.ValidationFailure> Notifications { get; }
+    public IEnumerable<FluentValidation.Results.ValidationFailure> Notifications { get; }
 
     public CommandResult(
       CommandResultStatus status,
       string message,
       string errorCode,
-      List<FluentValidation.Results.ValidationFailure> notifications)
+      IEnumerable<FluentValidation.Results.ValidationFailure> notifications)
     {
       Status = status;
       Message = message;
@@ -32,7 +32,7 @@ namespace Telluria.Utils.Crud.CommandResults
       string message,
       TResult result,
       string errorCode,
-      List<FluentValidation.Results.ValidationFailure> notifications)
+      IEnumerable<FluentValidation.Results.ValidationFailure> notifications)
     : base(status, message, errorCode, notifications)
     {
       Result = result;
@@ -51,7 +51,7 @@ namespace Telluria.Utils.Crud.CommandResults
       string message,
       PagedList<TResult> pagedEntityList,
       string errorCode,
-      List<FluentValidation.Results.ValidationFailure> notifications)
+      IEnumerable<FluentValidation.Results.ValidationFailure> notifications)
     : base(status, message, pagedEntityList.Records, errorCode, notifications)
     {
       Page = pagedEntityList.Page;

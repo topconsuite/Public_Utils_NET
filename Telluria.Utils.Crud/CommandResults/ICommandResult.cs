@@ -20,7 +20,7 @@ namespace Telluria.Utils.Crud.CommandResults
     CommandResultStatus Status { get; }
     string Message { get; }
     string ErrorCode { get; }
-    List<FluentValidation.Results.ValidationFailure> Notifications { get; }
+    IEnumerable<FluentValidation.Results.ValidationFailure> Notifications { get; }
   }
 
   public interface ICommandResult<TResult> : ICommandResult
