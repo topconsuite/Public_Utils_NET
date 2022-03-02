@@ -235,56 +235,7 @@ Note: Before running the project, remember to create the database using migratio
 ## Using DTOs
 This package allows you to implement "**RequestDTO**" templates for the **Create** and **Update** CRUD operations, along with a "**ResponseDTO**" for all returns:
 
-### 1. Implementing "**RequestDTOs**"
-Extend your RequestDTOs classes from the "**BaseNotifiableRequestDTO<T>**" class located in namespace "**Telluria.Utils.Crud.DTOs**" and override the "**Validate**" method:
-```csharp
-// Import Library
-using Telluria.Utils.Crud.DTOs;
-
-// Lets implement a CreateDTO for Customer:
-public class CustomerCreateRequestDTO : BaseNotifiableRequestDTO<Customer>
-{
-    // declare properties that you want for the DTO:
-    public string Name { get; set; }
-    public string Email { get; set; }
-    public string Address { get; set; }
-    public string PhoneNumber { get; set; }
-    ...
-
-    public override void Validate()
-    {
-        // this library uses Flunt package for validation.
-        // call "AddNotifications" end use the property "_contract" of
-        // the base class to generate a Flunt validation contract:
-        AddNotifications(
-            _contract
-                .IsEmail(Email, nameof(Email))
-                .IsNotEmpty(Name, nameof(Name))
-        );
-    }
-}
-
-// Same concepts here, but is a UpdateDTO for Customer:
-public class CustomerUpdateRequestDTO : BaseNotifiableRequestDTO<Customer>
-{
-    public Guid Id { get; set; }
-    public string Name { get; set; }
-    public string Email { get; set; }
-    public string Address { get; set; }
-    public string PhoneNumber { get; set; }
-
-    public override void Validate()
-    {
-        AddNotifications(
-            _contract
-                .IsEmail(Email, nameof(Email))
-                .IsNotEmpty(Name, nameof(Name))
-        );
-    }
-}
-```
-
-### 2. Implementing "**ResponseDTO**"
+### 1. Implementing "**ResponseDTO**"
 Extend your ResponseDTO class from the "**IResponseDTO<Customer><T>**" interface located in namespace "**Telluria.Utils.Crud.DTOs**":
 ```csharp
 // Import Library
@@ -300,7 +251,7 @@ public class CustomerResponseDTO : IResponseDTO<Customer>
 }
 ```
 
-### 3. Entering the DTO types in the controller definition
+### 2. Entering the DTO types in the controller definition
 Same as previous Controller definition, but with DTO type parameters:
 ```csharp
 // Import Library
