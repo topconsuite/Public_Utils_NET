@@ -5,10 +5,10 @@ namespace Telluria.Utils.Crud.CommandResults
 {
   public class CommandResult : ICommandResult
   {
-    public CommandResultStatus Status { get; }
-    public string Message { get; }
-    public string ErrorCode { get; }
-    public IEnumerable<FluentValidation.Results.ValidationFailure> Notifications { get; }
+    public CommandResultStatus Status { get; set; }
+    public string Message { get; set; }
+    public string ErrorCode { get; set; }
+    public IEnumerable<FluentValidation.Results.ValidationFailure> Notifications { get; set; }
 
     public CommandResult(
       CommandResultStatus status,
@@ -25,7 +25,7 @@ namespace Telluria.Utils.Crud.CommandResults
 
   public class CommandResult<TResult> : CommandResult, ICommandResult<TResult>
   {
-    public TResult Result { get; }
+    public TResult Result { get; set; }
 
     public CommandResult(
       CommandResultStatus status,
