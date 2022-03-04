@@ -8,18 +8,21 @@ namespace Telluria.Utils.Crud.CommandResults
     public CommandResultStatus Status { get; set; }
     public string Message { get; set; }
     public string ErrorCode { get; set; }
-    public IEnumerable<FluentValidation.Results.ValidationFailure> Notifications { get; set; }
+    public IEnumerable<FluentValidation.Results.ValidationFailure> Notifications { get; set; } = null;
+    public System.Exception Exception { get; set; } = null;
 
     public CommandResult(
       CommandResultStatus status,
       string message,
       string errorCode,
-      IEnumerable<FluentValidation.Results.ValidationFailure> notifications)
+      IEnumerable<FluentValidation.Results.ValidationFailure> notifications,
+      System.Exception exception)
     {
       Status = status;
       Message = message;
       ErrorCode = errorCode;
       Notifications = notifications;
+      Exception = exception;
     }
   }
 
@@ -32,8 +35,9 @@ namespace Telluria.Utils.Crud.CommandResults
       string message,
       TResult result,
       string errorCode,
-      IEnumerable<FluentValidation.Results.ValidationFailure> notifications)
-    : base(status, message, errorCode, notifications)
+      IEnumerable<FluentValidation.Results.ValidationFailure> notifications,
+      System.Exception exception)
+    : base(status, message, errorCode, notifications, exception)
     {
       Result = result;
     }
@@ -51,8 +55,9 @@ namespace Telluria.Utils.Crud.CommandResults
       string message,
       PagedList<TResult> pagedEntityList,
       string errorCode,
-      IEnumerable<FluentValidation.Results.ValidationFailure> notifications)
-    : base(status, message, pagedEntityList.Records, errorCode, notifications)
+      IEnumerable<FluentValidation.Results.ValidationFailure> notifications,
+      System.Exception exception)
+    : base(status, message, pagedEntityList.Records, errorCode, notifications, exception)
     {
       Page = pagedEntityList.Page;
       PerPage = pagedEntityList.PerPage;

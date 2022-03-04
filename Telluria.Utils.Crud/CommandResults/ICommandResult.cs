@@ -21,6 +21,7 @@ namespace Telluria.Utils.Crud.CommandResults
     string Message { get; set; }
     string ErrorCode { get; set; }
     IEnumerable<FluentValidation.Results.ValidationFailure> Notifications { get; set; }
+    System.Exception Exception { get; set; }
   }
 
   public interface ICommandResult<TResult> : ICommandResult
