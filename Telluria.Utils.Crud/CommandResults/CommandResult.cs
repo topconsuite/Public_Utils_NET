@@ -7,16 +7,16 @@ namespace Telluria.Utils.Crud.CommandResults
   {
     public CommandResultStatus Status { get; set; }
     public string Message { get; set; }
-    public string ErrorCode { get; set; }
+    public string ErrorCode { get; set; } = null;
     public IEnumerable<FluentValidation.Results.ValidationFailure> Notifications { get; set; } = null;
     public System.Exception Exception { get; set; } = null;
 
     public CommandResult(
       CommandResultStatus status,
       string message,
-      string errorCode,
-      IEnumerable<FluentValidation.Results.ValidationFailure> notifications,
-      System.Exception exception)
+      string errorCode = null,
+      IEnumerable<FluentValidation.Results.ValidationFailure> notifications = null,
+      System.Exception exception = null)
     {
       Status = status;
       Message = message;
@@ -34,9 +34,9 @@ namespace Telluria.Utils.Crud.CommandResults
       CommandResultStatus status,
       string message,
       TResult result,
-      string errorCode,
-      IEnumerable<FluentValidation.Results.ValidationFailure> notifications,
-      System.Exception exception)
+      string errorCode = null,
+      IEnumerable<FluentValidation.Results.ValidationFailure> notifications = null,
+      System.Exception exception = null)
     : base(status, message, errorCode, notifications, exception)
     {
       Result = result;
@@ -54,9 +54,9 @@ namespace Telluria.Utils.Crud.CommandResults
       CommandResultStatus status,
       string message,
       PagedList<TResult> pagedEntityList,
-      string errorCode,
-      IEnumerable<FluentValidation.Results.ValidationFailure> notifications,
-      System.Exception exception)
+      string errorCode = null,
+      IEnumerable<FluentValidation.Results.ValidationFailure> notifications = null,
+      System.Exception exception = null)
     : base(status, message, pagedEntityList.Records, errorCode, notifications, exception)
     {
       Page = pagedEntityList.Page;
