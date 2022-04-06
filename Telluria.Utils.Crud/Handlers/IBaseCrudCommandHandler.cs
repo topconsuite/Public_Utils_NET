@@ -11,7 +11,7 @@ namespace Telluria.Utils.Crud.Handlers
     ICommandHandler<BaseGetCommand<TEntity>, TEntity>,
     ICommandHandler<BaseCreateCommand<TEntity>, TEntity>,
     ICommandHandler<BaseCreateManyCommand<TEntity>, IEnumerable<TEntity>>,
-    ICommandHandler<BaseUpdateCommand<TEntity>>,
+    ICommandHandler<BaseUpdateCommand<TEntity>, TEntity>,
     ICommandHandler<BaseSoftDeleteCommand<TEntity>>,
     ICommandHandler<BaseRemoveCommand<TEntity>>
     where TEntity : BaseEntity
