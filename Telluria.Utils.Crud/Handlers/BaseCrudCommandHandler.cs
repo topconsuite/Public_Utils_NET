@@ -62,7 +62,10 @@ namespace Telluria.Utils.Crud.Handlers
       {
         await _repository.AddAsync(command.Data);
         await _repository.Commit();
-        return new CommandResult<TEntity>(CommandResultStatus.SUCCESS, "Post command executed with success", command.Data);
+
+        var result = await _repository.GetAsync(command.Data.Id, false, command.Includes);
+
+        return new CommandResult<TEntity>(CommandResultStatus.SUCCESS, "Post command executed with success", result);
       }
       catch (System.Exception e)
       {
@@ -84,17 +87,20 @@ namespace Telluria.Utils.Crud.Handlers
       }
     }
 
-    public virtual async Task<ICommandResult> HandleAsync(BaseUpdateCommand<TEntity> command)
+    public virtual async Task<ICommandResult<TEntity>> HandleAsync(BaseUpdateCommand<TEntity> command)
     {
       try
       {
         await _repository.UpdateAsync(command.Data);
         await _repository.Commit();
-        return new CommandResult(CommandResultStatus.SUCCESS, "Patch command executed with success");
+
+        var result = await _repository.GetAsync(command.Data.Id, false, command.Includes);
+
+        return new CommandResult<TEntity>(CommandResultStatus.SUCCESS, "Patch command executed with success", result);
       }
       catch (System.Exception e)
       {
-        return new CommandResult(CommandResultStatus.ERROR, e.Message, null, null, e);
+        return new CommandResult<TEntity>(CommandResultStatus.ERROR, e.Message, null, null, null, e);
       }
     }
 
