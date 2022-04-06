@@ -55,13 +55,13 @@ namespace Telluria.Utils.Crud.Controllers
     }
 
     [HttpPost]
-    public virtual async Task<IActionResult> Post([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromBody] TCreateDTO payload)
+    public virtual async Task<IActionResult> Post([FromServices] IBaseCrudCommandHandler<TEntity> handler, [FromBody] TCreateDTO payload, [FromQuery] EntityRequestQuery<TEntity> query = null)
     {
       if (!payload.IsValid)
         return BadRequest(new CommandResult(CommandResultStatus.ALERT, "Invalid body", null, payload.Notifications));
 
       var entity = _dtoToEntityMapper.Map(payload);
-      var result = await handler.HandleAsync(new BaseCreateCommand<TEntity>(entity));
+      var result = await handler.HandleAsync(new BaseCreateCommand<TEntity>(entity, query.GetIncludes()));
       return result.Status == CommandResultStatus.SUCCESS ? Created($"{this.Request.Path}/{entity.Id}", _entityToDTOMapper.Map(result)) : BadRequest(result);
     }
 
@@ -79,14 +79,14 @@ namespace Telluria.Utils.Crud.Controllers
     }
 
     [HttpPatch("{id}")]
-    public virtual async Task<IActionResult> Patch([FromServices] IBaseCrudCommandHandler<TEntity> handler, Guid id, [FromBody] TUpdateDTO payload)
+    public virtual async Task<IActionResult> Patch([FromServices] IBaseCrudCommandHandler<TEntity> handler, Guid id, [FromBody] TUpdateDTO payload, [FromQuery] EntityRequestQuery<TEntity> query = null)
     {
       if (!payload.IsValid)
         return BadRequest(new CommandResult(CommandResultStatus.ALERT, "Invalid body", null, payload.Notifications));
 
       var entity = _dtoToEntityMapper.Map(payload);
       entity.Id = id;
-      var result = await handler.HandleAsync(new BaseUpdateCommand<TEntity>(entity));
+      var result = await handler.HandleAsync(new BaseUpdateCommand<TEntity>(entity, query.GetIncludes()));
       return result.Status == CommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
 
