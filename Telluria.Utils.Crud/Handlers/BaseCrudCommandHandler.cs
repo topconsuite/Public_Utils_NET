@@ -104,6 +104,23 @@ namespace Telluria.Utils.Crud.Handlers
       }
     }
 
+    public virtual async Task<ICommandResult<TEntity>> HandleAsync(BaseUpsertCommand<TEntity> command)
+    {
+      try
+      {
+        await _repository.UpsertAsync(command.Data, command.Match, command.Updater);
+        await _repository.Commit();
+
+        var result = await _repository.GetAsync(command.Data.Id, false, command.Includes);
+
+        return new CommandResult<TEntity>(CommandResultStatus.SUCCESS, "Upsert command executed with success", result);
+      }
+      catch (System.Exception e)
+      {
+        return new CommandResult<TEntity>(CommandResultStatus.ERROR, e.Message, null, null, null, e);
+      }
+    }
+
     public virtual async Task<ICommandResult> HandleAsync(BaseSoftDeleteCommand<TEntity> command)
     {
       try
