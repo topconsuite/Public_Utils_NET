@@ -6,7 +6,7 @@
     <Description>Generic library for easy creation of CRUD rest APIs with dotnet and EntityFrameworkCore.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>crud, generic-crud, api, efcore</PackageTags>
-    <Version>1.7.15</Version>
+    <Version>1.8.15</Version>
     <RepositoryUrl>https://gitlab.com/t3105/telluria-utils-.net.git</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
@@ -17,5 +17,6 @@
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.354"/>
     <PackageReference Include="SonarAnalyzer.CSharp" Version="8.32.0.39516"/>
     <PackageReference Include="FluentValidation" Version="10.3.6"/>
+    <PackageReference Include="FlexLabs.EntityFrameworkCore.Upsert" Version="6.0.1"/>
   </ItemGroup>
 </Project>
