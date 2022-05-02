@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
+using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Query;
 using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
@@ -118,19 +119,44 @@ namespace Telluria.Utils.Crud.Repositories
     public virtual async Task SoftDeleteAsync<TSpecificEntity>(params TSpecificEntity[] entities)
         where TSpecificEntity : BaseEntity
     {
-      var now = DateTime.Now.ToUniversalTime();
+      TransactionScope scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
 
-      var taskList = entities.Select(async entity =>
+      try
       {
-        if (entity.Id == Guid.Empty) throw new Exception($"Id '{entity.Id}' not found");
-        var oldEntity = await GetAsync(entity.Id);
-        if (oldEntity == null) throw new Exception($"Id '{entity.Id}' not found");
-        entity.DeletedAt = now;
-        entity.Deleted = true;
-      });
-      await Task.WhenAll(taskList);
+        var now = DateTime.Now.ToUniversalTime();
+        var taskList = entities.Select(async entity =>
+        {
+          if (entity.Id == Guid.Empty)
+            throw new Exception($"Id '{entity.Id}' not found");
 
-      await Task.Run(() => DbSet<TSpecificEntity>().UpdateRange(entities));
+          var oldEntity = await GetAsync(entity.Id);
+
+          if (oldEntity == null)
+            throw new Exception($"Id '{entity.Id}' not found");
+
+          // Verify if have foreign key conflicts to continue or not with soft delete
+          using (scope)
+          {
+            await Task.Run(() => DbSet<TSpecificEntity>().RemoveRange(entities));
+            await Commit();
+          }
+
+          entity.DeletedAt = now;
+          entity.Deleted = true;
+        });
+
+        await Task.WhenAll(taskList);
+
+        // If no foreign key conflicts on hard delete, rollback the hard delete to do soft delete
+        scope.Dispose();
+
+        await Task.Run(() => DbSet<TSpecificEntity>().UpdateRange(entities));
+      }
+      catch (Exception ex)
+      {
+        scope.Dispose();
+        throw ex;
+      }
     }
 
     /// <summary>
