@@ -1,7 +1,7 @@
 {
   "name": "telluria-utils-net",
   "description": "Utilities for working with .NET languages",
-  "version": "1.9.15",
+  "version": "1.10.15",
   "license": "MIT",
   "author": "Telluria Tecnologia",
   "repository": {
@@ -9,7 +9,10 @@
     "url": "https://gitlab.com/t3105/telluria-utils-.net.git"
   },
   "keywords": [
-    "utils", "telluria", ".NET", "C#"
+    "utils",
+    "telluria",
+    ".NET",
+    "C#"
   ],
   "scripts": {
     "commit": "git-cz",
