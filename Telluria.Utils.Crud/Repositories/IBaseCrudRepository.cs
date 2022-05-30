@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Telluria.Utils.Crud.Entities;
@@ -70,6 +71,32 @@ namespace Telluria.Utils.Crud.Repositories
     ///     Return all registers (that matches the filter), including deleted ones (when using "Soft Delete").
     /// </summary>
     Task<PagedList<TSpecificEntity>> ListAllAsync<TSpecificEntity>(uint page, uint perPage, bool tracking = false,
+        Expression<Func<TSpecificEntity, bool>> filter = null,
+        params string[] includeProperties) where TSpecificEntity : BaseEntity;
+
+    /// <summary>
+    ///     Return all registers (that matches the filter), including deleted ones (when using "Soft Delete") without pagination.
+    /// </summary>
+    Task<IEnumerable<TEntity>> ListAllAsync(bool tracking = false,
+        Expression<Func<TEntity, bool>> filter = null,
+        params string[] includeProperties);
+    /// <summary>
+    ///     Return all registers (that matches the filter), including deleted ones (when using "Soft Delete") without pagination.
+    /// </summary>
+    Task<IEnumerable<TSpecificEntity>> ListAllAsync<TSpecificEntity>(bool tracking = false,
+        Expression<Func<TSpecificEntity, bool>> filter = null,
+        params string[] includeProperties) where TSpecificEntity : BaseEntity;
+
+    /// <summary>
+    ///     Return all registers (that matches the filter) not deleted (when using "Soft Delete") without pagination.
+    /// </summary>
+    Task<IEnumerable<TEntity>> ListAsync(bool tracking = false,
+        Expression<Func<TEntity, bool>> filter = null,
+        params string[] includeProperties);
+    /// <summary>
+    ///     Return all registers (that matches the filter) not deleted (when using "Soft Delete") without pagination.
+    /// </summary>
+    Task<IEnumerable<TSpecificEntity>> ListAsync<TSpecificEntity>(bool tracking = false,
         Expression<Func<TSpecificEntity, bool>> filter = null,
         params string[] includeProperties) where TSpecificEntity : BaseEntity;
   }

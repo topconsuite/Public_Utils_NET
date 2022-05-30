@@ -279,6 +279,62 @@ namespace Telluria.Utils.Crud.Repositories
 
       if (shouldThrow != null) throw shouldThrow;
     }
+
+    /// <summary>
+    ///     Return all registers (that matches the filter), including deleted ones (when using "Soft Delete"), without pagination.
+    /// </summary>
+    public virtual async Task<IEnumerable<TEntity>> ListAllAsync(bool tracking = false, Expression<Func<TEntity, bool>> filter = null,
+      params string[] includeProperties)
+    {
+      return await ListAllAsync<TEntity>(tracking, filter, includeProperties);
+    }
+
+    /// <summary>
+    ///     Return all registers (that matches the filter), including deleted ones (when using "Soft Delete"), without pagination.
+    /// </summary>
+    public virtual async Task<IEnumerable<TSpecificEntity>> ListAllAsync<TSpecificEntity>(bool tracking = false,
+    Expression<Func<TSpecificEntity, bool>> filter = null, params string[] includeProperties
+    )
+    where TSpecificEntity : BaseEntity
+    {
+      var set = DbSet<TSpecificEntity>().AsQueryable();
+
+      foreach (var includePropertie in includeProperties)
+        set = set.Include(includePropertie);
+
+      if (filter != null)
+        set = set.Where(filter);
+
+      return set.IgnoreQueryFilters().Tracking(tracking);
+    }
+
+    /// <summary>
+    ///     Return all registers (that matches the filter) not deleted (when using "Soft Delete"), without pagination.
+    /// </summary>
+    public virtual async Task<IEnumerable<TEntity>> ListAsync(bool tracking = false, Expression<Func<TEntity, bool>> filter = null,
+      params string[] includeProperties)
+    {
+      return await ListAsync<TEntity>(tracking, filter, includeProperties);
+    }
+
+    /// <summary>
+    ///     Return all registers (that matches the filter) not deleted (when using "Soft Delete"), without pagination.
+    /// </summary>
+    public virtual async Task<IEnumerable<TSpecificEntity>> ListAsync<TSpecificEntity>(bool tracking = false,
+    Expression<Func<TSpecificEntity, bool>> filter = null, params string[] includeProperties
+    )
+    where TSpecificEntity : BaseEntity
+    {
+      var set = DbSet<TSpecificEntity>().AsQueryable();
+
+      foreach (var includePropertie in includeProperties)
+        set = set.Include(includePropertie);
+
+      if (filter != null)
+        set = set.Where(filter);
+
+      return set.Tracking(tracking);
+    }
   }
 
   public static class TestExtensions
