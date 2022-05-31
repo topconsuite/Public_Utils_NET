@@ -73,16 +73,22 @@ namespace Telluria.Utils.Crud.Repositories
     public virtual async Task UpdateAsync<TSpecificEntity>(params TSpecificEntity[] entities)
         where TSpecificEntity : BaseEntity
     {
+      var entitiesIds = entities.Select(x => x.Id);
+      var oldEntities = await ListAsync<TSpecificEntity>(false, x => entitiesIds.Contains(x.Id));
       var now = DateTime.Now.ToUniversalTime();
 
-      var taskList = entities.Select(async entity =>
+      foreach (var entity in entities)
       {
-        if (entity.Id == Guid.Empty) throw new Exception($"Id '{entity.Id}' not found");
-        var oldEntity = await GetAsync(entity.Id);
-        if (oldEntity == null) throw new Exception($"Id '{entity.Id}' not found");
+        if (entity.Id == Guid.Empty)
+          throw new Exception($"Id '{entity.Id}' not found");
+
+        var oldEntity = oldEntities.FirstOrDefault(x => x.Id == entity.Id);
+
+        if (oldEntity == null)
+          throw new Exception($"Id '{entity.Id}' not found");
+
         entity.UpdatedAt = now;
-      });
-      await Task.WhenAll(taskList);
+      };
 
       await Task.Run(() => DbSet<TSpecificEntity>().UpdateRange(entities));
     }
@@ -119,42 +125,38 @@ namespace Telluria.Utils.Crud.Repositories
     public virtual async Task SoftDeleteAsync<TSpecificEntity>(params TSpecificEntity[] entities)
         where TSpecificEntity : BaseEntity
     {
-      TransactionScope scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled);
-
       try
       {
+        var entitiesIds = entities.Select(x => x.Id);
+        var oldEntities = await ListAsync<TSpecificEntity>(false, x => entitiesIds.Contains(x.Id));
         var now = DateTime.Now.ToUniversalTime();
-        var taskList = entities.Select(async entity =>
+
+        foreach (var entity in entities)
         {
           if (entity.Id == Guid.Empty)
             throw new Exception($"Id '{entity.Id}' not found");
 
-          var oldEntity = await GetAsync(entity.Id);
+          var oldEntity = oldEntities.FirstOrDefault(x => x.Id == entity.Id);
 
           if (oldEntity == null)
             throw new Exception($"Id '{entity.Id}' not found");
 
-          // Verify if have foreign key conflicts to continue or not with soft delete
-          using (scope)
-          {
-            await Task.Run(() => DbSet<TSpecificEntity>().RemoveRange(entities));
-            await Commit();
-          }
-
           entity.DeletedAt = now;
           entity.Deleted = true;
-        });
+        };
 
-        await Task.WhenAll(taskList);
-
-        // If no foreign key conflicts on hard delete, rollback the hard delete to do soft delete
-        scope.Dispose();
+        // Verify if have foreign key conflicts to continue or not with soft delete
+        using (var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
+        {
+          await Task.Run(() => DbSet<TSpecificEntity>().RemoveRange(entities));
+          await Commit();
+          scope.Dispose();
+        }
 
         await Task.Run(() => DbSet<TSpecificEntity>().UpdateRange(entities));
       }
       catch (Exception ex)
       {
-        scope.Dispose();
         throw ex;
       }
     }
