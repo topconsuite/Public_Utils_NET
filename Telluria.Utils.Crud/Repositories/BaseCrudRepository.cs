@@ -150,7 +150,6 @@ namespace Telluria.Utils.Crud.Repositories
         {
           await Task.Run(() => DbSet<TSpecificEntity>().RemoveRange(entities));
           await Commit();
-          scope.Dispose();
         }
 
         await Task.Run(() => DbSet<TSpecificEntity>().UpdateRange(entities));
