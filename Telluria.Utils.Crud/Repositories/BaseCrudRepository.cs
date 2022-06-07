@@ -154,9 +154,9 @@ namespace Telluria.Utils.Crud.Repositories
 
         await Task.Run(() => DbSet<TSpecificEntity>().UpdateRange(entities));
       }
-      catch (Exception ex)
+      catch (Exception)
       {
-        throw ex;
+        throw;
       }
     }
 
