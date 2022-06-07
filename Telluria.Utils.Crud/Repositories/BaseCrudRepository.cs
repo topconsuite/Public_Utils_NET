@@ -146,7 +146,7 @@ namespace Telluria.Utils.Crud.Repositories
         };
 
         // Verify if have foreign key conflicts to continue or not with soft delete
-        using (var scope = new TransactionScope(TransactionScopeAsyncFlowOption.Enabled))
+        using (var scope = new TransactionScope(TransactionScopeOption.RequiresNew, TransactionScopeAsyncFlowOption.Enabled))
         {
           await Task.Run(() => DbSet<TSpecificEntity>().RemoveRange(entities));
           await Commit();
