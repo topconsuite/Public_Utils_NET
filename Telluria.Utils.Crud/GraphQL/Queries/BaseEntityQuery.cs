@@ -7,11 +7,11 @@ using Newtonsoft.Json;
 using Telluria.Utils.Crud.CommandResults;
 using Telluria.Utils.Crud.Commands.BaseCommands;
 using Telluria.Utils.Crud.Entities;
-using Telluria.Utils.Crud.Graphql.Types;
+using Telluria.Utils.Crud.GraphQL.Types;
 using Telluria.Utils.Crud.Handlers;
-using HL = Telluria.Utils.Crud.Graphql.Helpers;
+using HL = Telluria.Utils.Crud.GraphQL.Helpers;
 
-namespace Telluria.Utils.Crud.Graphql.Queries
+namespace Telluria.Utils.Crud.GraphQL.Queries
 {
   public class BaseEntityQuery<TEntity, TGraphType> : BaseEntityQuery<TEntity, TGraphType, IBaseCrudCommandHandler<TEntity>>
     where TEntity : BaseEntity

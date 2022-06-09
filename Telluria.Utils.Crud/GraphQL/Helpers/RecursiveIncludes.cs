@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using GraphQL;
 using GraphQL.Language.AST;
 
-namespace Telluria.Utils.Crud.Graphql.Helpers
+namespace Telluria.Utils.Crud.GraphQL.Helpers
 {
   public static class RecursiveIncludes
   {

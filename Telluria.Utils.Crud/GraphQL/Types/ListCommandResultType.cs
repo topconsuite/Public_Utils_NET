@@ -1,7 +1,7 @@
 using GraphQL.Types;
 using Telluria.Utils.Crud.CommandResults;
 
-namespace Telluria.Utils.Crud.Graphql.Types
+namespace Telluria.Utils.Crud.GraphQL.Types
 {
   public class ListCommandResultType<TEntity, TGraphType> : ObjectGraphType<ListCommandResult<TEntity>>
   where TGraphType : ObjectGraphType<TEntity>

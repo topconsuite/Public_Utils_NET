@@ -1,7 +1,7 @@
 using FluentValidation.Results;
 using GraphQL.Types;
 
-namespace Telluria.Utils.Crud.Graphql.Types
+namespace Telluria.Utils.Crud.GraphQL.Types
 {
   public class ValidationFailureType : ObjectGraphType<ValidationFailure>
   {
