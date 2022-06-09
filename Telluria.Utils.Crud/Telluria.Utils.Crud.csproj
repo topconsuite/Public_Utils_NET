@@ -19,6 +19,5 @@
     <PackageReference Include="FluentValidation" Version="10.3.6"/>
     <PackageReference Include="FlexLabs.EntityFrameworkCore.Upsert" Version="6.0.1"/>
     <PackageReference Include="GraphQL" Version="4.7.1"/>
-    <PackageReference Include="GraphQL.Server.Transports.AspNetCore" Version="5.2.0"/>
   </ItemGroup>
 </Project>

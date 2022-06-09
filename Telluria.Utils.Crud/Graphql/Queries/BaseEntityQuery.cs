@@ -1,10 +1,15 @@
+using System;
+using System.Collections.Generic;
 using GraphQL;
 using GraphQL.Types;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using Telluria.Utils.Crud.CommandResults;
 using Telluria.Utils.Crud.Commands.BaseCommands;
 using Telluria.Utils.Crud.Entities;
+using Telluria.Utils.Crud.Graphql.Types;
 using Telluria.Utils.Crud.Handlers;
+using HL = Telluria.Utils.Crud.Graphql.Helpers;
 
 namespace Telluria.Utils.Crud.Graphql.Queries
 {
@@ -34,7 +39,7 @@ namespace Telluria.Utils.Crud.Graphql.Queries
 
           // Get the includes (If has any)
           if (selections != null)
-            RecursiveIncludes.AddRecursiveIncludes(selections, includes);
+            HL.RecursiveIncludes.AddRecursiveIncludes(selections, includes);
 
           var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
           var response = await handler.HandleAsync(
@@ -64,7 +69,7 @@ namespace Telluria.Utils.Crud.Graphql.Queries
 
           // Get the includes (If has any)
           if (selections != null)
-            RecursiveIncludes.AddRecursiveIncludes(selections, includes);
+            HL.RecursiveIncludes.AddRecursiveIncludes(selections, includes);
 
           var contractSellerHandler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
           var page = context.GetArgument<uint>("page");
