@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using GraphQL;
 using GraphQL.Types;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
 using Telluria.Utils.Crud.CommandResults;
 using Telluria.Utils.Crud.Commands.BaseCommands;
 using Telluria.Utils.Crud.Entities;
@@ -76,7 +75,7 @@ namespace Telluria.Utils.Crud.GraphQL.Queries
           var perPage = context.GetArgument<uint>("perPage");
 
           var where = context.GetArgument<List<WhereClauses>>("where");
-          var whereClauses = ParserWhereClauses.Parse<TEntity>(where ?? new List<WhereClauses>());
+          var whereClauses = HL.ParserWhereClauses.Parse<TEntity>(where ?? new List<WhereClauses>());
 
           var response = context.GetArgument<bool>("includeDeleted")
           ? await contractSellerHandler.HandleAsync(new BaseListAllCommand<TEntity>(page, perPage, whereClauses, includes.ToArray()))
