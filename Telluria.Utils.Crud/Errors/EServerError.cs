@@ -1,10 +1,10 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.Resources;
-using Telluria.Utils.Crud.Constants.Enums;
-using Telluria.Utils.Crud.Constants.Enums.HTTP;
+using Telluria.Utils.Crud.Resources;
 using RES = Telluria.Utils.Crud.Resources;
 
-namespace Telluria.Utils.Crud.Constants.Errors.HTTP
+namespace Telluria.Utils.Crud.Errors
 {
   public enum EServerError
   {
@@ -79,23 +79,28 @@ namespace Telluria.Utils.Crud.Constants.Errors.HTTP
     {
       var rm = new ResourceManager(typeof(RES.Resources));
 
+      return rm.GetString(error.GetRerourceError().ToString()) ?? "";
+    }
+
+    public static Enum GetRerourceError(this EServerError error)
+    {
       return error switch
       {
-        EServerError.INTERNAL_SERVER_ERROR => rm.GetString(EResourcesServerError.ERROR_INTERNAL_SERVER_ERROR.ToString()) ?? "",
-        EServerError.NOT_IMPLEMENTED => rm.GetString(EResourcesServerError.ERROR_NOT_IMPLEMENTED.ToString()) ?? "",
-        EServerError.BAD_GATEWAY => rm.GetString(EResourcesServerError.ERROR_BAD_GATEWAY.ToString()) ?? "",
-        EServerError.SERVICE_UNAVAILABLE => rm.GetString(EResourcesServerError.ERROR_SERVICE_UNAVAILABLE.ToString()) ?? "",
-        EServerError.GATEWAY_TIMEOUT => rm.GetString(EResourcesServerError.ERROR_GATEWAY_TIMEOUT.ToString()) ?? "",
-        EServerError.HTTP_VERSION_NOT_SUPPORTED => rm.GetString(EResourcesServerError.ERROR_HTTP_VERSION_NOT_SUPPORTED.ToString()) ?? "",
-        EServerError.VARIANT_ALSO_NEGOTIATES => rm.GetString(EResourcesServerError.ERROR_VARIANT_ALSO_NEGOTIATES.ToString()) ?? "",
-        EServerError.INSUFFICIENT_STORAGE => rm.GetString(EResourcesServerError.ERROR_INSUFFICIENT_STORAGE.ToString()) ?? "",
-        EServerError.LOOP_DETECTED => rm.GetString(EResourcesServerError.ERROR_LOOP_DETECTED.ToString()) ?? "",
-        EServerError.BANDWIDTH_LIMIT_EXCEEDED => rm.GetString(EResourcesServerError.ERROR_BANDWIDTH_LIMIT_EXCEEDED.ToString()) ?? "",
-        EServerError.NOT_EXTENDED => rm.GetString(EResourcesServerError.ERROR_NOT_EXTENDED.ToString()) ?? "",
-        EServerError.NETWORK_AUTHENTICATION_REQUIRED => rm.GetString(EResourcesServerError.ERROR_NETWORK_AUTHENTICATION_REQUIRED.ToString()) ?? "",
-        EServerError.NETWORK_READ_TIMEOUT => rm.GetString(EResourcesServerError.ERROR_NETWORK_READ_TIMEOUT.ToString()) ?? "",
-        EServerError.NETWORK_CONNECT_TIMEOUT => rm.GetString(EResourcesServerError.ERROR_NETWORK_CONNECT_TIMEOUT.ToString()) ?? "",
-        _ => rm.GetString(EResources.ERROR_UNKNOWN.ToString()) ?? ""
+        EServerError.INTERNAL_SERVER_ERROR => EResourcesServerError.ERROR_INTERNAL_SERVER_ERROR,
+        EServerError.NOT_IMPLEMENTED => EResourcesServerError.ERROR_NOT_IMPLEMENTED,
+        EServerError.BAD_GATEWAY => EResourcesServerError.ERROR_BAD_GATEWAY,
+        EServerError.SERVICE_UNAVAILABLE => EResourcesServerError.ERROR_SERVICE_UNAVAILABLE,
+        EServerError.GATEWAY_TIMEOUT => EResourcesServerError.ERROR_GATEWAY_TIMEOUT,
+        EServerError.HTTP_VERSION_NOT_SUPPORTED => EResourcesServerError.ERROR_HTTP_VERSION_NOT_SUPPORTED,
+        EServerError.VARIANT_ALSO_NEGOTIATES => EResourcesServerError.ERROR_VARIANT_ALSO_NEGOTIATES,
+        EServerError.INSUFFICIENT_STORAGE => EResourcesServerError.ERROR_INSUFFICIENT_STORAGE,
+        EServerError.LOOP_DETECTED => EResourcesServerError.ERROR_LOOP_DETECTED,
+        EServerError.BANDWIDTH_LIMIT_EXCEEDED => EResourcesServerError.ERROR_BANDWIDTH_LIMIT_EXCEEDED,
+        EServerError.NOT_EXTENDED => EResourcesServerError.ERROR_NOT_EXTENDED,
+        EServerError.NETWORK_AUTHENTICATION_REQUIRED => EResourcesServerError.ERROR_NETWORK_AUTHENTICATION_REQUIRED,
+        EServerError.NETWORK_READ_TIMEOUT => EResourcesServerError.ERROR_NETWORK_READ_TIMEOUT,
+        EServerError.NETWORK_CONNECT_TIMEOUT => EResourcesServerError.ERROR_NETWORK_CONNECT_TIMEOUT,
+        _ => EResources.ERROR_UNKNOWN
       };
     }
   }

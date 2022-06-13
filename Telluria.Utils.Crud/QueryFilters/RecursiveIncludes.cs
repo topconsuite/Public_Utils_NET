@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using GraphQL;
 using GraphQL.Language.AST;
+using Telluria.Utils.Crud.Helpers;
 
-namespace Telluria.Utils.Crud.GraphQL.Helpers
+namespace Telluria.Utils.Crud.QueryFilters
 {
   public static class RecursiveIncludes
   {

@@ -1,21 +1,23 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
+using FluentValidation.Results;
+using Telluria.Utils.Crud.Entities;
 using Telluria.Utils.Crud.Lists;
 
 namespace Telluria.Utils.Crud.CommandResults
 {
   public class CommandResult : ICommandResult
   {
-    public CommandResultStatus Status { get; set; }
+    public ECommandResultStatus Status { get; set; }
     public string Message { get; set; }
     public string ErrorCode { get; set; } = null;
-    public IEnumerable<FluentValidation.Results.ValidationFailure> Notifications { get; set; } = null;
+    public IEnumerable<ValidationFailure> Notifications { get; set; } = null;
     public System.Exception Exception { get; set; } = null;
 
     public CommandResult(
-      CommandResultStatus status,
+      ECommandResultStatus status,
       string message,
       string errorCode = null,
-      IEnumerable<FluentValidation.Results.ValidationFailure> notifications = null,
+      IEnumerable<ValidationFailure> notifications = null,
       System.Exception exception = null)
     {
       Status = status;
@@ -24,6 +26,23 @@ namespace Telluria.Utils.Crud.CommandResults
       Notifications = notifications;
       Exception = exception;
     }
+
+    public ICommandResult<TResult> ToCommandResult<TResult>()
+      where TResult : BaseEntity
+    {
+      return new CommandResult<TResult>(Status, Message, null!, ErrorCode, Notifications, Exception);
+    }
+
+    public ICommandResult<IEnumerable<TResult>> ToEnumerableCommandResult<TResult>()
+      where TResult : BaseEntity
+    {
+      return new CommandResult<IEnumerable<TResult>>(Status, Message, null!, ErrorCode, Notifications, Exception);
+    }
+    public IListCommandResult<TResult> ToListCommandResult<TResult>()
+      where TResult : BaseEntity
+    {
+      return new ListCommandResult<TResult>(Status, Message, null!, ErrorCode, Notifications, Exception);
+    }
   }
 
   public class CommandResult<TResult> : CommandResult, ICommandResult<TResult>
@@ -31,13 +50,13 @@ namespace Telluria.Utils.Crud.CommandResults
     public TResult Result { get; set; }
 
     public CommandResult(
-      CommandResultStatus status,
+      ECommandResultStatus status,
       string message,
       TResult result,
       string errorCode = null,
-      IEnumerable<FluentValidation.Results.ValidationFailure> notifications = null,
+      IEnumerable<ValidationFailure> notifications = null,
       System.Exception exception = null)
-    : base(status, message, errorCode, notifications, exception)
+      : base(status, message, errorCode, notifications, exception)
     {
       Result = result;
     }
@@ -51,13 +70,13 @@ namespace Telluria.Utils.Crud.CommandResults
     public ulong TotalCount { get; }
 
     public ListCommandResult(
-      CommandResultStatus status,
+      ECommandResultStatus status,
       string message,
       PagedList<TResult> pagedEntityList,
       string errorCode = null,
-      IEnumerable<FluentValidation.Results.ValidationFailure> notifications = null,
+      IEnumerable<ValidationFailure> notifications = null,
       System.Exception exception = null)
-    : base(status, message, pagedEntityList.Records, errorCode, notifications, exception)
+      : base(status, message, pagedEntityList.Records, errorCode, notifications, exception)
     {
       Page = pagedEntityList.Page;
       PerPage = pagedEntityList.PerPage;

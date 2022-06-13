@@ -1,11 +1,11 @@
 using System.Collections.Generic;
+using GraphQL;
 using Telluria.Utils.Crud.CommandResults;
-using Telluria.Utils.Crud.Constants.Errors.HTTP;
-using GQL = GraphQL;
+using Telluria.Utils.Crud.Errors;
 
-namespace Telluria.Utils.Crud.GraphQL.Helpers
+namespace Telluria.Utils.Crud.GraphQL
 {
-  public static class ExecutionError
+  public static class GraphQLExecutionError
   {
     private static readonly string _message = EServerErrorExtensions.GetErrorMessage(EServerError.INTERNAL_SERVER_ERROR);
     private static readonly string _errorCode = EServerErrorExtensions.GetErrorCode(EServerError.INTERNAL_SERVER_ERROR);
@@ -17,12 +17,12 @@ namespace Telluria.Utils.Crud.GraphQL.Helpers
     /// <param name="errorCode"> The error code. </param>
     /// <param name="status"> The pre defined status code. </param>
     /// <returns> The GraphQL execution error. </returns>
-    public static GQL.ExecutionError Create(
+    public static ExecutionError Create(
       string message = null!,
       string errorCode = null!,
-      CommandResultStatus status = CommandResultStatus.ERROR)
+      ECommandResultStatus status = ECommandResultStatus.ERROR)
     {
-      return new GQL.ExecutionError(message ?? _message, new Dictionary<string, string>
+      return new ExecutionError(message ?? _message, new Dictionary<string, string>
       {
         { "errorCode", errorCode ?? _errorCode },
         { "status", status.ToString() }

@@ -1,9 +1,10 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using Telluria.Utils.Crud.Entities;
 
 namespace Telluria.Utils.Crud.CommandResults
 {
-  public enum CommandResultStatus
+  public enum ECommandResultStatus
   {
     [Display(Name = "SUCCESS", Description = "The command was executed successfully")]
     SUCCESS,
@@ -17,11 +18,18 @@ namespace Telluria.Utils.Crud.CommandResults
 
   public interface ICommandResult
   {
-    CommandResultStatus Status { get; set; }
+    ECommandResultStatus Status { get; set; }
     string Message { get; set; }
     string ErrorCode { get; set; }
     IEnumerable<FluentValidation.Results.ValidationFailure> Notifications { get; set; }
     System.Exception Exception { get; set; }
+
+    ICommandResult<TResult> ToCommandResult<TResult>()
+      where TResult : BaseEntity;
+    ICommandResult<IEnumerable<TResult>> ToEnumerableCommandResult<TResult>()
+      where TResult : BaseEntity;
+    IListCommandResult<TResult> ToListCommandResult<TResult>()
+      where TResult : BaseEntity;
   }
 
   public interface ICommandResult<TResult> : ICommandResult

@@ -1,31 +1,93 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 using System.Threading.Tasks;
 using Telluria.Utils.Crud.CommandResults;
 using Telluria.Utils.Crud.Commands.BaseCommands;
 using Telluria.Utils.Crud.Entities;
+using Telluria.Utils.Crud.Errors;
 using Telluria.Utils.Crud.Repositories;
+using Telluria.Utils.Crud.Validation;
 
 namespace Telluria.Utils.Crud.Handlers
 {
-  public class BaseCrudCommandHandler<TEntity> : IBaseCrudCommandHandler<TEntity> where TEntity : BaseEntity
+  public abstract class BaseCrudCommandHandler<TEntity, TValidator, TRepository> : IBaseCrudCommandHandler<TEntity, TValidator, TRepository>
+    where TEntity : BaseEntity
+    where TValidator : BaseEntityValidator<TEntity>, new()
+    where TRepository : IBaseCrudRepository<TEntity>
   {
-    protected IBaseCrudRepository<TEntity> _repository { get; set; }
+    protected enum EBaseCrudCommands
+    {
+      FIND,
+      LIST,
+      LIST_ALL,
+      GET,
+      GET_ALL,
+      CREATE,
+      CREATE_MANY,
+      UPDATE,
+      UPSERT,
+      SOFT_DELETE,
+      REMOVE,
+    }
 
-    public BaseCrudCommandHandler(IBaseCrudRepository<TEntity> repository)
+    [SuppressMessage("StyleCop.CSharp.MaintainabilityRules", "SA1401:Fields should be private", Justification = "<Pendente>")]
+    protected readonly TRepository _repository;
+
+    protected BaseCrudCommandHandler(TRepository repository)
     {
       _repository = repository;
     }
+
+    protected ICommandResult GetDefaultError(Exception exception)
+    {
+      var result = new CommandResult(
+        ECommandResultStatus.ERROR,
+        EServerErrorExtensions.GetErrorMessage(EServerError.INTERNAL_SERVER_ERROR),
+        EServerError.INTERNAL_SERVER_ERROR.ToString(),
+        null,
+        exception
+      );
+
+      return result;
+    }
+
+    protected string GetDefaultSuccessMessage(EBaseCrudCommands command)
+    {
+      var commandName = command switch
+      {
+        EBaseCrudCommands.FIND => nameof(EBaseCrudCommands.FIND),
+        EBaseCrudCommands.LIST => nameof(EBaseCrudCommands.LIST),
+        EBaseCrudCommands.LIST_ALL => nameof(EBaseCrudCommands.LIST_ALL),
+        EBaseCrudCommands.GET => nameof(EBaseCrudCommands.GET),
+        EBaseCrudCommands.GET_ALL => nameof(EBaseCrudCommands.GET_ALL),
+        EBaseCrudCommands.CREATE => nameof(EBaseCrudCommands.CREATE),
+        EBaseCrudCommands.CREATE_MANY => nameof(EBaseCrudCommands.CREATE_MANY),
+        EBaseCrudCommands.UPDATE => nameof(EBaseCrudCommands.UPDATE),
+        EBaseCrudCommands.UPSERT => nameof(EBaseCrudCommands.UPSERT),
+        EBaseCrudCommands.SOFT_DELETE => nameof(EBaseCrudCommands.SOFT_DELETE),
+        EBaseCrudCommands.REMOVE => nameof(EBaseCrudCommands.REMOVE),
+        _ => ""
+      };
+
+      return $"{commandName} command executed with success";
+    }
+
+    protected abstract ICommandResult HandleErrors(Exception exception);
+
+    protected abstract string GetSuccessMessage(EBaseCrudCommands command);
 
     public virtual async Task<IListCommandResult<TEntity>> HandleAsync(BaseListCommand<TEntity> command)
     {
       try
       {
         var result = await _repository.ListAsync(command.Page, command.PerPage, false, command.Where, command.Includes);
-        return new ListCommandResult<TEntity>(CommandResultStatus.SUCCESS, "List command executed with success", result);
+        return new ListCommandResult<TEntity>(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.LIST), result);
       }
-      catch (System.Exception e)
+      catch (Exception e)
       {
-        return new ListCommandResult<TEntity>(CommandResultStatus.ERROR, e.Message, null, null, null, e);
+        return HandleErrors(e).ToListCommandResult<TEntity>();
       }
     }
 
@@ -34,11 +96,11 @@ namespace Telluria.Utils.Crud.Handlers
       try
       {
         var result = await _repository.ListAllAsync(command.Page, command.PerPage, false, command.Where, command.Includes);
-        return new ListCommandResult<TEntity>(CommandResultStatus.SUCCESS, "ListAll command executed with success", result);
+        return new ListCommandResult<TEntity>(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.LIST_ALL), result);
       }
-      catch (System.Exception e)
+      catch (Exception e)
       {
-        return new ListCommandResult<TEntity>(CommandResultStatus.ERROR, e.Message, null, null, null, e);
+        return HandleErrors(e).ToListCommandResult<TEntity>();
       }
     }
 
@@ -47,12 +109,12 @@ namespace Telluria.Utils.Crud.Handlers
       try
       {
         var result = await _repository.GetAsync(command.Id, false, command.Includes);
-        var message = result != null ? "Get command executed with success" : $"Id '{command.Id}' not found";
-        return new CommandResult<TEntity>(CommandResultStatus.SUCCESS, message, result);
+        var message = result != null ? GetSuccessMessage(EBaseCrudCommands.GET) : $"Id '{command.Id}' not found";
+        return new CommandResult<TEntity>(ECommandResultStatus.SUCCESS, message, result);
       }
-      catch (System.Exception e)
+      catch (Exception e)
       {
-        return new CommandResult<TEntity>(CommandResultStatus.ERROR, e.Message, null, null, null, e);
+        return HandleErrors(e).ToCommandResult<TEntity>();
       }
     }
 
@@ -60,16 +122,29 @@ namespace Telluria.Utils.Crud.Handlers
     {
       try
       {
+        var validationResult = Validator.Validate<TValidator, TEntity>(command.Data, BaseEntityValidations.CREATE);
+
+        if (!validationResult.IsValid)
+        {
+          return new CommandResult<TEntity>(
+            ECommandResultStatus.ALERT,
+            EClientErrorExtensions.GetErrorMessage(EClientError.BAD_REQUEST),
+            null!,
+            EClientError.BAD_REQUEST.ToString(),
+            validationResult.Errors
+          );
+        }
+
         await _repository.AddAsync(command.Data);
         await _repository.Commit();
 
         var result = await _repository.GetAsync(command.Data.Id, false, command.Includes);
 
-        return new CommandResult<TEntity>(CommandResultStatus.SUCCESS, "Post command executed with success", result);
+        return new CommandResult<TEntity>(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.CREATE), result);
       }
-      catch (System.Exception e)
+      catch (Exception e)
       {
-        return new CommandResult<TEntity>(CommandResultStatus.ERROR, e.Message, null, null, null, e);
+        return HandleErrors(e).ToCommandResult<TEntity>();
       }
     }
 
@@ -77,13 +152,26 @@ namespace Telluria.Utils.Crud.Handlers
     {
       try
       {
+        var validationResults = command.Data.Select(entity => Validator.Validate<TValidator, TEntity>(entity, BaseEntityValidations.CREATE));
+
+        if (validationResults.Any(t => !t.IsValid))
+        {
+          return new CommandResult<IEnumerable<TEntity>>(
+            ECommandResultStatus.ALERT,
+            EClientErrorExtensions.GetErrorMessage(EClientError.BAD_REQUEST),
+            null!,
+            EClientError.BAD_REQUEST.ToString(),
+            validationResults.FirstOrDefault(t => !t.IsValid).Errors
+          );
+        }
+
         await _repository.AddAsync(command.Data);
         await _repository.Commit();
-        return new CommandResult<IEnumerable<TEntity>>(CommandResultStatus.SUCCESS, "PostMany command executed with success", command.Data);
+        return new CommandResult<IEnumerable<TEntity>>(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.CREATE_MANY), command.Data);
       }
-      catch (System.Exception e)
+      catch (Exception e)
       {
-        return new CommandResult<IEnumerable<TEntity>>(CommandResultStatus.ERROR, e.Message, null, null, null, e);
+        return HandleErrors(e).ToEnumerableCommandResult<TEntity>();
       }
     }
 
@@ -91,16 +179,29 @@ namespace Telluria.Utils.Crud.Handlers
     {
       try
       {
+        var validationResult = Validator.Validate<TValidator, TEntity>(command.Data, BaseEntityValidations.UPDATE);
+
+        if (!validationResult.IsValid)
+        {
+          return new CommandResult<TEntity>(
+            ECommandResultStatus.ALERT,
+            EClientErrorExtensions.GetErrorMessage(EClientError.BAD_REQUEST),
+            null!,
+            EClientError.BAD_REQUEST.ToString(),
+            validationResult.Errors
+          );
+        }
+
         await _repository.UpdateAsync(command.Data);
         await _repository.Commit();
 
         var result = await _repository.GetAsync(command.Data.Id, false, command.Includes);
 
-        return new CommandResult<TEntity>(CommandResultStatus.SUCCESS, "Patch command executed with success", result);
+        return new CommandResult<TEntity>(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.UPDATE), result);
       }
-      catch (System.Exception e)
+      catch (Exception e)
       {
-        return new CommandResult<TEntity>(CommandResultStatus.ERROR, e.Message, null, null, null, e);
+        return HandleErrors(e).ToCommandResult<TEntity>();
       }
     }
 
@@ -108,16 +209,29 @@ namespace Telluria.Utils.Crud.Handlers
     {
       try
       {
+        var validationResult = Validator.Validate<TValidator, TEntity>(command.Data, BaseEntityValidations.CREATE, BaseEntityValidations.UPDATE);
+
+        if (!validationResult.IsValid)
+        {
+          return new CommandResult<TEntity>(
+            ECommandResultStatus.ALERT,
+            EClientErrorExtensions.GetErrorMessage(EClientError.BAD_REQUEST),
+            null!,
+            EClientError.BAD_REQUEST.ToString(),
+            validationResult.Errors
+          );
+        }
+
         await _repository.UpsertAsync(command.Data, command.Match, command.Updater);
         await _repository.Commit();
 
         var result = await _repository.GetAsync(command.Data.Id, false, command.Includes);
 
-        return new CommandResult<TEntity>(CommandResultStatus.SUCCESS, "Upsert command executed with success", result);
+        return new CommandResult<TEntity>(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.UPSERT), result);
       }
-      catch (System.Exception e)
+      catch (Exception e)
       {
-        return new CommandResult<TEntity>(CommandResultStatus.ERROR, e.Message, null, null, null, e);
+        return HandleErrors(e).ToCommandResult<TEntity>();
       }
     }
 
@@ -126,13 +240,25 @@ namespace Telluria.Utils.Crud.Handlers
       try
       {
         var entity = await _repository.GetAsync(command.Id);
+
+        if (entity == null)
+        {
+          return new CommandResult<TEntity>(
+            ECommandResultStatus.ALERT,
+            EClientErrorExtensions.GetErrorMessage(EClientError.NOT_FOUND),
+            null!,
+            EClientError.NOT_FOUND.ToString(),
+            null
+          );
+        }
+
         await _repository.SoftDeleteAsync(entity);
         await _repository.Commit();
-        return new CommandResult(CommandResultStatus.SUCCESS, "SoftDelete command executed with success");
+        return new CommandResult(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.SOFT_DELETE));
       }
-      catch (System.Exception e)
+      catch (Exception e)
       {
-        return new CommandResult(CommandResultStatus.ERROR, e.Message, null, null, e);
+        return HandleErrors(e);
       }
     }
 
@@ -141,13 +267,25 @@ namespace Telluria.Utils.Crud.Handlers
       try
       {
         var entity = await _repository.GetAsync(command.Id);
+
+        if (entity == null)
+        {
+          return new CommandResult<TEntity>(
+            ECommandResultStatus.ALERT,
+            EClientErrorExtensions.GetErrorMessage(EClientError.NOT_FOUND),
+            null!,
+            EClientError.NOT_FOUND.ToString(),
+            null
+          );
+        }
+
         await _repository.RemoveAsync(entity);
         await _repository.Commit();
-        return new CommandResult(CommandResultStatus.SUCCESS, "Remove command executed with success");
+        return new CommandResult(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.REMOVE));
       }
-      catch (System.Exception e)
+      catch (Exception e)
       {
-        return new CommandResult(CommandResultStatus.ERROR, e.Message, null, null, e);
+        return HandleErrors(e);
       }
     }
 
@@ -156,12 +294,12 @@ namespace Telluria.Utils.Crud.Handlers
       try
       {
         var result = await _repository.FindAsync(false, command.Where, command.Includes);
-        var message = result != null ? "Find command executed with success" : "Not found";
-        return new CommandResult<TEntity>(CommandResultStatus.SUCCESS, message, result);
+        var message = result != null ? GetSuccessMessage(EBaseCrudCommands.FIND) : "Not found";
+        return new CommandResult<TEntity>(ECommandResultStatus.SUCCESS, message, result);
       }
-      catch (System.Exception e)
+      catch (Exception e)
       {
-        return new CommandResult<TEntity>(CommandResultStatus.ERROR, e.Message, null, null, null, e);
+        return HandleErrors(e).ToCommandResult<TEntity>();
       }
     }
   }

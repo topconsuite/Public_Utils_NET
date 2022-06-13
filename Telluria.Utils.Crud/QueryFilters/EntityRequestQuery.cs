@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Linq.Expressions;
 using Telluria.Utils.Crud.Entities;
@@ -6,7 +6,8 @@ using Telluria.Utils.Crud.Helpers;
 
 namespace Telluria.Utils.Crud.QueryFilters
 {
-    public class EntityRequestQuery<TEntity> where TEntity : BaseEntity
+    public class EntityRequestQuery<TEntity>
+      where TEntity : BaseEntity
     {
         public string Where { get; set; }
         public string[] Include { get; set; }
@@ -22,7 +23,7 @@ namespace Telluria.Utils.Crud.QueryFilters
         {
             return Include?
                 .Select(i => string.Join('.', i.Split('.').Select(t => t.FirstCharToUpper())))
-                .ToArray() ?? new string[] { };
+                .ToArray() ?? Array.Empty<string>();
         }
     }
 }

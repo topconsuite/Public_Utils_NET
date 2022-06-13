@@ -8,20 +8,18 @@ using Telluria.Utils.Crud.Commands.BaseCommands;
 using Telluria.Utils.Crud.Entities;
 using Telluria.Utils.Crud.GraphQL.Types;
 using Telluria.Utils.Crud.Handlers;
-using HL = Telluria.Utils.Crud.GraphQL.Helpers;
+using Telluria.Utils.Crud.QueryFilters;
+using Telluria.Utils.Crud.Repositories;
+using Telluria.Utils.Crud.Validation;
 
-namespace Telluria.Utils.Crud.GraphQL.Queries
+namespace Telluria.Utils.Crud.GraphQL
 {
-  public class BaseEntityQuery<TEntity, TGraphType> : BaseEntityQuery<TEntity, TGraphType, IBaseCrudCommandHandler<TEntity>>
+  public abstract class BaseEntityQuery<TEntity, TGraphType, TValidator, TRepository, TCommandHandler> : ObjectGraphType
     where TEntity : BaseEntity
-    where TGraphType : ObjectGraphType<TEntity>
-  {
-  }
-
-  public class BaseEntityQuery<TEntity, TGraphType, TCommandHandler> : ObjectGraphType
-    where TEntity : BaseEntity
-    where TGraphType : ObjectGraphType<TEntity>
-    where TCommandHandler : IBaseCrudCommandHandler<TEntity>
+    where TGraphType : BaseEntityGraphType<TEntity>
+    where TValidator : BaseEntityValidator<TEntity>, new()
+    where TRepository : IBaseCrudRepository<TEntity>
+    where TCommandHandler : IBaseCrudCommandHandler<TEntity, TValidator, TRepository>
   {
     protected void AddBaseQueryGetById()
     {
@@ -38,17 +36,17 @@ namespace Telluria.Utils.Crud.GraphQL.Queries
 
           // Get the includes (If has any)
           if (selections != null)
-            HL.RecursiveIncludes.AddRecursiveIncludes(selections, includes);
+            RecursiveIncludes.AddRecursiveIncludes(selections, includes);
 
           var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
           var response = await handler.HandleAsync(
             new BaseGetCommand<TEntity>(context.GetArgument<Guid>("id"), includes.ToArray())
           );
 
-          if (response.Status == CommandResultStatus.SUCCESS)
+          if (response.Status == ECommandResultStatus.SUCCESS)
             return response;
 
-          throw HL.ExecutionError.Create(response.Message, response.ErrorCode, response.Status);
+          throw GraphQLExecutionError.Create(response.Message, response.ErrorCode, response.Status);
         });
     }
 
@@ -68,23 +66,23 @@ namespace Telluria.Utils.Crud.GraphQL.Queries
 
           // Get the includes (If has any)
           if (selections != null)
-            HL.RecursiveIncludes.AddRecursiveIncludes(selections, includes);
+            RecursiveIncludes.AddRecursiveIncludes(selections, includes);
 
           var contractSellerHandler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
           var page = context.GetArgument<uint>("page");
           var perPage = context.GetArgument<uint>("perPage");
 
           var where = context.GetArgument<List<WhereClauses>>("where");
-          var whereClauses = HL.ParserWhereClauses.Parse<TEntity>(where ?? new List<WhereClauses>());
+          var whereClauses = ParserWhereClauses.Parse<TEntity>(where ?? new List<WhereClauses>());
 
           var response = context.GetArgument<bool>("includeDeleted")
           ? await contractSellerHandler.HandleAsync(new BaseListAllCommand<TEntity>(page, perPage, whereClauses, includes.ToArray()))
           : await contractSellerHandler.HandleAsync(new BaseListCommand<TEntity>(page, perPage, whereClauses, includes.ToArray()));
 
-          if (response.Status == CommandResultStatus.SUCCESS)
+          if (response.Status == ECommandResultStatus.SUCCESS)
             return response;
 
-          throw HL.ExecutionError.Create(response.Message, response.ErrorCode, response.Status);
+          throw GraphQLExecutionError.Create(response.Message, response.ErrorCode, response.Status);
         });
     }
   }

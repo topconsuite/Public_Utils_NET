@@ -9,20 +9,18 @@ using Telluria.Utils.Crud.Commands.BaseCommands;
 using Telluria.Utils.Crud.Entities;
 using Telluria.Utils.Crud.GraphQL.Types;
 using Telluria.Utils.Crud.Handlers;
-using HL = Telluria.Utils.Crud.GraphQL.Helpers;
+using Telluria.Utils.Crud.QueryFilters;
+using Telluria.Utils.Crud.Repositories;
+using Telluria.Utils.Crud.Validation;
 
-namespace Telluria.Utils.Crud.GraphQL.Mutations
+namespace Telluria.Utils.Crud.GraphQL
 {
-  public class BaseEntityMutation<TEntity, TGraphType> : BaseEntityMutation<TEntity, TGraphType, IBaseCrudCommandHandler<TEntity>>
+  public abstract class BaseEntityMutation<TEntity, TGraphType, TValidator, TRepository, TCommandHandler> : ObjectGraphType
     where TEntity : BaseEntity
-    where TGraphType : ObjectGraphType<TEntity>
-  {
-  }
-
-  public class BaseEntityMutation<TEntity, TGraphType, TCommandHandler> : ObjectGraphType
-    where TEntity : BaseEntity
-    where TGraphType : ObjectGraphType<TEntity>
-    where TCommandHandler : IBaseCrudCommandHandler<TEntity>
+    where TGraphType : BaseEntityGraphType<TEntity>
+    where TValidator : BaseEntityValidator<TEntity>, new()
+    where TRepository : IBaseCrudRepository<TEntity>
+    where TCommandHandler : IBaseCrudCommandHandler<TEntity, TValidator, TRepository>
   {
     protected void AddBaseMutationCreate<TGraphInputType>()
       where TGraphInputType : InputObjectGraphType<TEntity>
@@ -42,7 +40,7 @@ namespace Telluria.Utils.Crud.GraphQL.Mutations
 
           // Get the includes (If has any)
           if (selections != null)
-            HL.RecursiveIncludes.AddRecursiveIncludes(selections, includes);
+            RecursiveIncludes.AddRecursiveIncludes(selections, includes);
 
           var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
           var response = await handler.HandleAsync(
@@ -50,15 +48,15 @@ namespace Telluria.Utils.Crud.GraphQL.Mutations
               context.GetArgument<TEntity>(entityNameCamalCase), includes.ToArray())
           );
 
-          if (response.Status == CommandResultStatus.SUCCESS)
+          if (response.Status == ECommandResultStatus.SUCCESS)
             return response;
 
-          throw HL.ExecutionError.Create(response.Message, response.ErrorCode, response.Status);
+          throw GraphQLExecutionError.Create(response.Message, response.ErrorCode, response.Status);
         });
     }
 
     protected void AddBaseMutationUpdate<TGraphInputType>()
-      where TGraphInputType : InputObjectGraphType<TEntity>
+      where TGraphInputType : BaseUpdateInputType<TEntity>
     {
       var entityName = typeof(TEntity).Name;
       var entityNameCamalCase = char.ToLowerInvariant(entityName[0]) + entityName[1..];
@@ -75,7 +73,7 @@ namespace Telluria.Utils.Crud.GraphQL.Mutations
 
           // Get the includes (If has any)
           if (selections != null)
-            HL.RecursiveIncludes.AddRecursiveIncludes(selections, includes);
+            RecursiveIncludes.AddRecursiveIncludes(selections, includes);
 
           var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
           var entityDynamic = context.GetArgument<dynamic>(entityNameCamalCase);
@@ -87,10 +85,10 @@ namespace Telluria.Utils.Crud.GraphQL.Mutations
             new BaseUpdateCommand<TEntity>(entityDb, includes.ToArray())
           );
 
-          if (response.Status == CommandResultStatus.SUCCESS)
+          if (response.Status == ECommandResultStatus.SUCCESS)
             return response;
 
-          throw HL.ExecutionError.Create(response.Message, response.ErrorCode, response.Status);
+          throw GraphQLExecutionError.Create(response.Message, response.ErrorCode, response.Status);
         });
     }
 
@@ -111,10 +109,10 @@ namespace Telluria.Utils.Crud.GraphQL.Mutations
             ? await handler.HandleAsync(new BaseRemoveCommand<TEntity>(id))
             : await handler.HandleAsync(new BaseSoftDeleteCommand<TEntity>(id));
 
-          if (response.Status == CommandResultStatus.SUCCESS)
+          if (response.Status == ECommandResultStatus.SUCCESS)
             return response;
 
-          throw HL.ExecutionError.Create(response.Message, response.ErrorCode, response.Status);
+          throw GraphQLExecutionError.Create(response.Message, response.ErrorCode, response.Status);
         });
     }
   }

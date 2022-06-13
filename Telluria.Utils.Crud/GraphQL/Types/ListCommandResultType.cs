@@ -11,7 +11,7 @@ namespace Telluria.Utils.Crud.GraphQL.Types
       Name = $"ListCommandResult_{typeof(TEntity).Name}";
       Description = "A list of items (GraphQL Type)";
 
-      Field(x => x.Status, nullable: false, type: typeof(EnumerationGraphType<CommandResultStatus>)).Description("The status of the command");
+      Field(x => x.Status, nullable: false, type: typeof(EnumerationGraphType<ECommandResultStatus>)).Description("The status of the command");
       Field(x => x.Message, nullable: false).Description("The message of the command");
       Field(x => x.Result, nullable: true, type: typeof(ListGraphType<TGraphType>)).Description("The result of the command");
       Field(x => x.ErrorCode, nullable: true).Description("The error code of the command");

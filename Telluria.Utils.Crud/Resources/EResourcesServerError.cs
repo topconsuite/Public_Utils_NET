@@ -1,4 +1,4 @@
-namespace Telluria.Utils.Crud.Constants.Enums.HTTP
+namespace Telluria.Utils.Crud.Resources
 {
   // ALWAYS follow this pattern:
   // Error messages -> ERROR_<codeerror>

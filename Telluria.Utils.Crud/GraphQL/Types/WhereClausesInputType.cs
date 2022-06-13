@@ -1,5 +1,5 @@
 using GraphQL.Types;
-using Telluria.Utils.Crud.Constants.Enums;
+using Telluria.Utils.Crud.QueryFilters;
 
 namespace Telluria.Utils.Crud.GraphQL.Types
 {
