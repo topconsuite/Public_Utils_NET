@@ -1,8 +1,11 @@
 using FluentValidation;
+using GraphQL.Types;
 using Microsoft.EntityFrameworkCore;
 using Telluria.Utils.Crud.CommandResults;
 using Telluria.Utils.Crud.Controllers;
 using Telluria.Utils.Crud.Entities;
+using Telluria.Utils.Crud.GraphQL;
+using Telluria.Utils.Crud.GraphQL.Types;
 using Telluria.Utils.Crud.Handlers;
 using Telluria.Utils.Crud.Mapping;
 using Telluria.Utils.Crud.Repositories;
@@ -32,6 +35,11 @@ namespace Telluria.Utils.Crud.Sample
 
       AddBaseRuleCreate(upsertRule);
       AddBaseRuleUpdate(upsertRule);
+
+      RuleSet("DELETE", () =>
+      {
+        RuleFor(x => x.Id).NotEmpty();
+      });
     }
   }
 
@@ -90,5 +98,54 @@ namespace Telluria.Utils.Crud.Sample
   // API.Controllers
   public class ProductsController : BaseCrudController<Product, ProductValidator, IProductRepository, IProductCommandHandler>
   {
+  }
+
+  public class ProductType : BaseEntityGraphType<Product>
+  {
+    public ProductType()
+    {
+      Field(x => x.Code, nullable: false);
+      Field(x => x.Name, nullable: false);
+      Field(x => x.Price, nullable: true);
+    }
+  }
+
+  public class ProductCreateInputType : InputObjectGraphType<Product>
+  {
+    public ProductCreateInputType()
+    {
+      Field(x => x.Code, nullable: false);
+      Field(x => x.Name, nullable: false);
+      Field(x => x.Price, nullable: true);
+    }
+  }
+
+  public class ProductUpdateInputType : BaseUpdateInputType<Product>
+  {
+    public ProductUpdateInputType()
+    {
+      Field(x => x.Code, nullable: false);
+      Field(x => x.Name, nullable: false);
+      Field(x => x.Price, nullable: true);
+    }
+  }
+
+  public class ProductMutation : BaseEntityMutation<Product, ProductType, ProductValidator, IProductRepository, IProductCommandHandler>
+  {
+    public ProductMutation()
+    {
+      AddBaseMutationCreate<ProductCreateInputType>();
+      AddBaseMutationUpdate<ProductUpdateInputType>();
+      AddBaseMutationDelete();
+    }
+  }
+
+  public class ProductQuery : BaseEntityQuery<Product, ProductType, ProductValidator, IProductRepository, IProductCommandHandler>
+  {
+    public ProductQuery()
+    {
+      AddBaseQueryGetById();
+      AddBaseQueryGetAll();
+    }
   }
 }
