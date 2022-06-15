@@ -35,6 +35,7 @@ namespace Telluria.Utils.Crud.CommandResults
     {
       return new CommandResult<IEnumerable<TResult>>(Status, Message, null!, ErrorCode, Notifications);
     }
+
     public IListCommandResult<TResult> ToListCommandResult<TResult>()
       where TResult : BaseEntity
     {

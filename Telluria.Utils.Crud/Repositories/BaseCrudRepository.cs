@@ -339,8 +339,11 @@ namespace Telluria.Utils.Crud.Repositories
       return sql;
     }
 
+    [SuppressMessage("Major Code Smell", "S3011:Reflection should not be used to increase accessibility of classes, methods, or fields", Justification = "<Pendente>")]
     private static object Private(this object obj, string privateField) =>
       obj?.GetType().GetField(privateField, BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(obj);
+
+    [SuppressMessage("Major Code Smell", "S3011:Reflection should not be used to increase accessibility of classes, methods, or fields", Justification = "<Pendente>")]
     private static T Private<T>(this object obj, string privateField) =>
       (T)obj?.GetType().GetField(privateField, BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(obj);
   }

@@ -77,7 +77,7 @@ namespace Telluria.Utils.Crud.GraphQL
 
           var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
           var entityDynamic = context.GetArgument<dynamic>(entityNameCamalCase);
-          var entityDb = handler.HandleAsync(new BaseGetCommand<TEntity>(entityDynamic["id"])).Result.Result;
+          var entityDb = handler.HandleAsync(new BaseGetCommand(entityDynamic["id"])).Result.Result;
 
           JsonConvert.PopulateObject(JsonConvert.SerializeObject(entityDynamic), entityDb);
 
@@ -106,8 +106,8 @@ namespace Telluria.Utils.Crud.GraphQL
           var id = context.GetArgument<Guid>("id");
 
           var response = context.GetArgument<bool>("permanent")
-            ? await handler.HandleAsync(new BaseRemoveCommand<TEntity>(id))
-            : await handler.HandleAsync(new BaseSoftDeleteCommand<TEntity>(id));
+            ? await handler.HandleAsync(new BaseRemoveCommand(id))
+            : await handler.HandleAsync(new BaseSoftDeleteCommand(id));
 
           if (response.Status == ECommandResultStatus.SUCCESS)
             return response;

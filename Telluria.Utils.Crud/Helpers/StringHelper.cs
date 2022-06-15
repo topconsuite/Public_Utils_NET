@@ -93,7 +93,10 @@ namespace Telluria.Utils.Crud.Helpers
 
     public int GetHashCode(string obj)
     {
-      unchecked { return obj.GetHashCode(); };
+      unchecked
+      {
+        return obj.GetHashCode();
+      }
     }
   }
 }

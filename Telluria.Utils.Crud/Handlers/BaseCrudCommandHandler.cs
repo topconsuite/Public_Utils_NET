@@ -103,7 +103,7 @@ namespace Telluria.Utils.Crud.Handlers
       }
     }
 
-    public virtual async Task<ICommandResult<TEntity>> HandleAsync(BaseGetCommand<TEntity> command)
+    public virtual async Task<ICommandResult<TEntity>> HandleAsync(BaseGetCommand command)
     {
       try
       {
@@ -204,7 +204,7 @@ namespace Telluria.Utils.Crud.Handlers
       }
     }
 
-    public virtual async Task<ICommandResult> HandleAsync(BaseSoftDeleteCommand<TEntity> command)
+    public virtual async Task<ICommandResult> HandleAsync(BaseSoftDeleteCommand command)
     {
       try
       {
@@ -231,7 +231,7 @@ namespace Telluria.Utils.Crud.Handlers
       }
     }
 
-    public virtual async Task<ICommandResult> HandleAsync(BaseRemoveCommand<TEntity> command)
+    public virtual async Task<ICommandResult> HandleAsync(BaseRemoveCommand command)
     {
       try
       {
