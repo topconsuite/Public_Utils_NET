@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +10,7 @@ namespace Telluria.Utils.Crud.Repositories
   public static class RepositoryExtensionMethods
   {
     public static IQueryable<T> Tracking<T>(this IQueryable<T> source, bool tracking)
-        where T : BaseEntity
+      where T : BaseEntity
     {
       if (tracking)
         return source;
@@ -19,7 +19,7 @@ namespace Telluria.Utils.Crud.Repositories
     }
 
     public static async Task<PagedList<T>> PagedList<T>(this IQueryable<T> source, uint page, uint perPage, bool tracking = false)
-        where T : BaseEntity
+      where T : BaseEntity
     {
       uint _maxPageSize = 200;
 
@@ -28,7 +28,7 @@ namespace Telluria.Utils.Crud.Repositories
 
       var count = (uint)source.Count();
 
-      var pageCount = (count / perPage);
+      var pageCount = count / perPage;
       if ((count % perPage) != 0) pageCount++;
       if (page > pageCount && pageCount > 0) page = pageCount;
 

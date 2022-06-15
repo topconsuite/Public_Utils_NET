@@ -10,13 +10,15 @@
     <RepositoryUrl>https://gitlab.com/t3105/telluria-utils-.net.git</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="10.1.1"/>
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5"/>
-    <PackageReference Include="LinqKit.Core" Version="1.1.27"/>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="6.0.0"/>
-    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.354"/>
-    <PackageReference Include="SonarAnalyzer.CSharp" Version="8.32.0.39516"/>
-    <PackageReference Include="FluentValidation" Version="10.3.6"/>
-    <PackageReference Include="FlexLabs.EntityFrameworkCore.Upsert" Version="6.0.1"/>
+    <PackageReference Include="AutoMapper" Version="10.1.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.5" />
+    <PackageReference Include="LinqKit.Core" Version="1.1.27" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="6.0.0" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.354" />
+    <PackageReference Include="SonarAnalyzer.CSharp" Version="8.32.0.39516" />
+    <PackageReference Include="FluentValidation" Version="10.3.6" />
+    <PackageReference Include="FlexLabs.EntityFrameworkCore.Upsert" Version="6.0.1" />
+    <PackageReference Include="GraphQL" Version="4.7.1" />
   </ItemGroup>
 </Project>

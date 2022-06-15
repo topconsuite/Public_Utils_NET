@@ -1,0 +1,56 @@
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>1.0.0</value></resheader>
+
+  <!-- HTTP CLIENT ERROR -->
+  <data name="ERROR_BAD_REQUEST" xml:space="preserve"><value>A solicitação não pôde ser compreendida pelo servidor devido à sintaxe malformada.</value></data>
+  <data name="ERROR_UNAUTHORIZED" xml:space="preserve"><value>A solicitação requer autenticação do usuário.</value></data>
+  <data name="ERROR_PAYMENT_REQUIRED" xml:space="preserve"><value>Este código ainda não foi implementado e está reservado para uso em uma próxima especificação.</value></data>
+  <data name="ERROR_FORBIDDEN" xml:space="preserve"><value>O servidor entendeu a solicitação, mas se recusa a atendê-la.</value></data>
+  <data name="ERROR_NOT_FOUND" xml:space="preserve"><value>O servidor não encontrou nada que corresponda ao URI de solicitação.</value></data>
+  <data name="ERROR_METHOD_NOT_ALLOWED" xml:space="preserve"><value>O método especificado na Request-Line não é permitido para o recurso identificado pelo Request-URI.</value></data>
+  <data name="ERROR_NOT_ACCEPTABLE" xml:space="preserve"><value>O recurso identificado pela solicitação só é capaz de gerar entidades de resposta que tenham características de conteúdo aceitáveis de acordo com os cabeçalhos de aceitação enviados na solicitação.</value></data>
+  <data name="ERROR_PROXY_AUTHENTICATION_REQUIRED" xml:space="preserve"><value>Que o cliente deve primeiro autenticar-se com o proxy.</value></data>
+  <data name="ERROR_REQUEST_TIMEOUT" xml:space="preserve"><value>O cliente não produziu uma solicitação dentro do tempo que o servidor estava preparado para esperar.</value></data>
+  <data name="ERROR_CONFLICT" xml:space="preserve"><value>A solicitação não pôde ser concluída devido a um conflito com o estado atual do recurso.</value></data>
+  <data name="ERROR_GONE" xml:space="preserve"><value>O recurso solicitado não está mais disponível no servidor e nenhum endereço de encaminhamento é conhecido.</value></data>
+  <data name="ERROR_LENGTH_REQUIRED" xml:space="preserve"><value>O servidor se recusa a aceitar a solicitação sem um comprimento de conteúdo definido.</value></data>
+  <data name="ERROR_PRECONDITION_FAILED" xml:space="preserve"><value>A pré-condição fornecida em um ou mais dos campos de cabeçalho de solicitação avaliados como falso quando foi testado no servidor.</value></data>
+  <data name="ERROR_PAYLOAD_TOO_LARGE" xml:space="preserve"><value>O servidor está se recusando a processar uma solicitação porque a carga útil da solicitação é maior do que o servidor deseja ou pode processar.</value></data>
+  <data name="ERROR_URI_TOO_LONG" xml:space="preserve"><value>O servidor está se recusando a atender a solicitação porque o URI da solicitação é maior do que o servidor está disposto a interpretar.</value></data>
+  <data name="ERROR_UNSUPPORTED_MEDIA_TYPE" xml:space="preserve"><value>O servidor está se recusando a atender a solicitação porque a entidade da solicitação está em um formato não suportado pelo recurso solicitado para o método solicitado.</value></data>
+  <data name="ERROR_RANGE_NOT_SATISFIABLE" xml:space="preserve"><value>Nenhum dos valores do especificador de intervalo em um campo de cabeçalho de solicitação de intervalo se sobrepõe à extensão atual do recurso selecionado.</value></data>
+  <data name="ERROR_EXPECTATION_FAILED" xml:space="preserve"><value>A expectativa fornecida em um campo de cabeçalho de solicitação Expect não pôde ser atendida por pelo menos um dos servidores de entrada.</value></data>
+  <data name="ERROR_IM_A_TEAPOT" xml:space="preserve"><value>O servidor se recusa a preparar café porque é um bule.</value></data>
+  <data name="ERROR_MISDIRECTED_REQUEST" xml:space="preserve"><value>A solicitação foi direcionada a um servidor que não pode produzir uma resposta.</value></data>
+  <data name="ERROR_UNPROCESSABLE_ENTITY" xml:space="preserve"><value>O servidor entende o tipo de conteúdo da entidade de solicitação e a sintaxe da entidade de solicitação está correta, mas não conseguiu processar as instruções contidas.</value></data>
+  <data name="ERROR_LOCKED" xml:space="preserve"><value>A solicitação foi aceita, mas o processamento não foi concluído.</value></data>
+  <data name="ERROR_FAILED_DEPENDENCY" xml:space="preserve"><value>A solicitação falhou devido à falha de uma solicitação anterior.</value></data>
+  <data name="ERROR_UPGRADE_REQUIRED" xml:space="preserve"><value>O cliente deve alternar para um protocolo diferente, como TLS/1.0.</value></data>
+  <data name="ERROR_PRECONDITION_REQUIRED" xml:space="preserve"><value>O servidor de origem exige que a solicitação seja condicional.</value></data>
+  <data name="ERROR_TOO_MANY_REQUESTS" xml:space="preserve"><value>O usuário enviou muitas solicitações em um determinado período de tempo.</value></data>
+  <data name="ERROR_REQUEST_HEADER_FIELDS_TOO_LARGE" xml:space="preserve"><value>O servidor não está disposto a processar a solicitação porque seus campos de cabeçalho são muito grandes.</value></data>
+  <data name="ERROR_CONNECTION_CLOSED_WITHOUT_RESPONSE" xml:space="preserve"><value>O servidor fechou a conexão sem retornar uma resposta.</value></data>
+  <data name="ERROR_UNAVAILABLE_FOR_LEGAL_REASONS" xml:space="preserve"><value>O servidor está negando acesso ao recurso em resposta a uma demanda legal.</value></data>
+  <data name="ERROR_CLIENT_CLOSED_REQUEST" xml:space="preserve"><value>O cliente encerrou a solicitação.</value></data>
+
+  <!-- HTTP SERVER ERROR -->
+  <data name="ERROR_INTERNAL_SERVER_ERROR" xml:space="preserve"><value>O servidor encontrou uma condição inesperada que o impediu de atender à solicitação.</value></data>
+  <data name="ERROR_NOT_IMPLEMENTED" xml:space="preserve"><value>O servidor não oferece suporte à funcionalidade necessária para atender à solicitação.</value></data>
+  <data name="ERROR_BAD_GATEWAY" xml:space="preserve"><value>O servidor, enquanto atuava como gateway ou proxy, recebeu uma resposta inválida do servidor upstream acessado na tentativa de atender à solicitação.</value></data>
+  <data name="ERROR_SERVICE_UNAVAILABLE" xml:space="preserve"><value>No momento, o servidor não consegue lidar com a solicitação devido a uma sobrecarga temporária ou manutenção do servidor.</value></data>
+  <data name="ERROR_GATEWAY_TIMEOUT" xml:space="preserve"><value>O servidor, enquanto atuava como gateway ou proxy, não recebeu uma resposta oportuna do servidor upstream especificado pelo URI (por exemplo, HTTP, FTP, LDAP) ou algum outro servidor auxiliar (por exemplo, DNS) que precisava acessar na tentativa de concluir o pedido.</value></data>
+  <data name="ERROR_HTTP_VERSION_NOT_SUPPORTED" xml:space="preserve"><value>O servidor não oferece suporte ou se recusa a oferecer suporte à versão do protocolo HTTP que foi usada na mensagem de solicitação.</value></data>
+  <data name="ERROR_VARIANT_ALSO_NEGOTIATES" xml:space="preserve"><value>O servidor tem um erro de configuração interno: o recurso de variante escolhido está configurado para se envolver em negociação de conteúdo transparente e, portanto, não é um ponto final adequado no processo de negociação.</value></data>
+  <data name="ERROR_INSUFFICIENT_STORAGE" xml:space="preserve"><value>O servidor não pode armazenar a representação necessária para concluir a solicitação.</value></data>
+  <data name="ERROR_LOOP_DETECTED" xml:space="preserve"><value>O servidor detectou um loop infinito durante o processamento da solicitação.</value></data>
+  <data name="ERROR_BANDWIDTH_LIMIT_EXCEEDED" xml:space="preserve"><value>O servidor excedeu a largura de banda especificada pelo administrador do servidor; isso é frequentemente usado por provedores de hospedagem compartilhada para limitar a largura de banda dos clientes.</value></data>
+  <data name="ERROR_NOT_EXTENDED" xml:space="preserve"><value>O servidor não suporta, ou se recusa a suportar, a versão do protocolo que foi usada na mensagem de solicitação.</value></data>
+  <data name="ERROR_NETWORK_AUTHENTICATION_REQUIRED" xml:space="preserve"><value>O cliente precisa se autenticar para obter acesso à rede.</value></data>
+  <data name="ERROR_NETWORK_READ_TIMEOUT" xml:space="preserve"><value>O servidor atingiu o tempo limite aguardando a conexão de rede.</value></data>
+  <data name="ERROR_NETWORK_CONNECT_TIMEOUT" xml:space="preserve"><value>O servidor atingiu o tempo limite enquanto aguardava uma conexão de proxy.</value></data>
+
+  <!-- DEFAULT MESSAGES -->
+  <data name="ERROR_NOT_TRANSLATED_YET" xml:space="preserve"><value>Esta mensagem ainda não foi traduzida.</value></data>
+  <data name="ERROR_UNKNOWN" xml:space="preserve"><value>Erro desconhecido.</value></data>
+</root>
