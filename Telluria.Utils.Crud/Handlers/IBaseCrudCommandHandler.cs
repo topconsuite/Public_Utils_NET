@@ -9,13 +9,13 @@ namespace Telluria.Utils.Crud.Handlers
   public interface IBaseCrudCommandHandler<TEntity, TValidator, TRepository> :
     IListCommandHandler<BaseListCommand<TEntity>, TEntity>,
     IListCommandHandler<BaseListAllCommand<TEntity>, TEntity>,
-    ICommandHandler<BaseGetCommand<TEntity>, TEntity>,
+    ICommandHandler<BaseGetCommand, TEntity>,
     ICommandHandler<BaseFindCommand<TEntity>, TEntity>,
     ICommandHandler<BaseCreateCommand<TEntity>, TEntity>,
     ICommandHandler<BaseCreateManyCommand<TEntity>, IEnumerable<TEntity>>,
     ICommandHandler<BaseUpdateCommand<TEntity>, TEntity>,
-    ICommandHandler<BaseSoftDeleteCommand<TEntity>>,
-    ICommandHandler<BaseRemoveCommand<TEntity>>
+    ICommandHandler<BaseSoftDeleteCommand>,
+    ICommandHandler<BaseRemoveCommand>
     where TEntity : BaseEntity
     where TValidator : BaseEntityValidator<TEntity>, new()
     where TRepository : IBaseCrudRepository<TEntity>

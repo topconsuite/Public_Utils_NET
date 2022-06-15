@@ -45,7 +45,7 @@ namespace Telluria.Utils.Crud.Controllers
     [HttpGet("{id}")]
     public virtual async Task<IActionResult> Get([FromServices] TCommandHandler handler, Guid id, [FromQuery] EntityRequestQuery<TEntity> query = null)
     {
-      var result = await handler.HandleAsync(new BaseGetCommand<TEntity>(id, query.GetIncludes()));
+      var result = await handler.HandleAsync(new BaseGetCommand(id, query.GetIncludes()));
       if (result.Status == ECommandResultStatus.SUCCESS && result.Result == null) return NotFound(result);
       return result.Status == ECommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
@@ -76,7 +76,7 @@ namespace Telluria.Utils.Crud.Controllers
     [HttpPatch("{id}")]
     public virtual async Task<IActionResult> Patch([FromServices] TCommandHandler handler, Guid id, [FromBody] PatchBody<TEntity, TEntity> body)
     {
-      var entity = await handler.HandleAsync(new BaseGetCommand<TEntity>(id));
+      var entity = await handler.HandleAsync(new BaseGetCommand(id));
       if (entity.Status == ECommandResultStatus.SUCCESS && entity.Result == null) return NotFound(entity);
 
       try
@@ -96,14 +96,14 @@ namespace Telluria.Utils.Crud.Controllers
     [HttpDelete("{id}")]
     public virtual async Task<IActionResult> SoftDelete([FromServices] TCommandHandler handler, Guid id)
     {
-      var result = await handler.HandleAsync(new BaseSoftDeleteCommand<TEntity>(id));
+      var result = await handler.HandleAsync(new BaseSoftDeleteCommand(id));
       return result.Status == ECommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
 
     [HttpDelete("{id}/permanently")]
     public virtual async Task<IActionResult> Remove([FromServices] TCommandHandler handler, Guid id)
     {
-      var result = await handler.HandleAsync(new BaseRemoveCommand<TEntity>(id));
+      var result = await handler.HandleAsync(new BaseRemoveCommand(id));
       return result.Status == ECommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
   }

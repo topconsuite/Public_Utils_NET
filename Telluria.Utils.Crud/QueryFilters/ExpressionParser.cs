@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -10,26 +10,29 @@ namespace Telluria.Utils.Crud.QueryFilters
   public static class ExpressionParser
   {
     // Definição do padrão da string
-    private static readonly string startPattern = "$(";
-    private static readonly string endPattern = ")";
-    private static readonly char separatorPattern = ';';
-    private static readonly char propertySeparatorPattern = '|';
+    private static readonly string _startPattern = "$(";
+    private static readonly string _endPattern = ")";
+    private static readonly char _separatorPattern = ';';
+    private static readonly char _propertySeparatorPattern = '|';
 
-    public static Expression<Func<T, bool>> Parse<T>(string strFilter) where T : class
+    public static Expression<Func<T, bool>> Parse<T>(string strFilter)
+      where T : class
     {
       // Inicializando o filtro com default TRUE
       var predicate = PredicateBuilder.New<T>(true);
 
       // Se a string está preenchida com o padrão
-      if (strFilter != null && strFilter.StartsWith(startPattern) && strFilter.EndsWith(endPattern))
+      if (strFilter != null && strFilter.StartsWith(_startPattern) && strFilter.EndsWith(_endPattern))
       {
         // Transformando a string em um array de filtros utilizando o separador
-        var filters = strFilter.Substring(startPattern.Length, strFilter.Length - (startPattern + endPattern).Length).Split(separatorPattern);
+        var filters = strFilter.Substring(_startPattern.Length, strFilter.Length - (_startPattern + _endPattern).Length).Split(_separatorPattern);
 
         // percorrendo o array de filtros
         foreach (var filter in filters)
         {
-          string[] _keyValue; const int KEY = 0; const int VALUE = 2;
+          string[] _keyValue;
+          const int KEY = 0;
+          const int VALUE = 2;
 
           string _propertyName = "";
           string _propertyValue = "";
@@ -82,9 +85,9 @@ namespace Telluria.Utils.Crud.QueryFilters
           _propertyValue = _keyValue[VALUE];
 
           // codigo utilizado para OR
-          var _hasOrStatement = _propertyName.Contains(propertySeparatorPattern);
+          var _hasOrStatement = _propertyName.Contains(_propertySeparatorPattern);
 
-          Expression<Func<T, bool>> lambda = (t => false);
+          Expression<Func<T, bool>> lambda = t => false;
 
           if (!_hasOrStatement)
           {
@@ -92,7 +95,7 @@ namespace Telluria.Utils.Crud.QueryFilters
           }
           else
           {
-            var _propertyNames = _propertyName.Split(propertySeparatorPattern);
+            var _propertyNames = _propertyName.Split(_propertySeparatorPattern);
 
             foreach (var propertyName in _propertyNames)
             {
@@ -111,8 +114,8 @@ namespace Telluria.Utils.Crud.QueryFilters
     public static Expression<Func<T, bool>> ConvertToLambda<T>(string _propertyName, string _propertyValue, string _method)
     {
       var parameter = Expression.Parameter(typeof(T), "t");
-      var property = _getProperty(parameter, _propertyName);
-      var value = _parse(_propertyValue, property.Type, _method.Equals("In"));
+      var property = GetProperty(parameter, _propertyName);
+      var value = Parse(_propertyValue, property.Type, _method.Equals("In"));
       var filterValue = !_method.Equals("In") ? Expression.Constant(value, property.Type) : Expression.Constant(value);
       Expression comparation = null;
 
@@ -140,20 +143,21 @@ namespace Telluria.Utils.Crud.QueryFilters
           comparation = Expression.Call(property, "Contains", null, filterValue);
           break;
         case "In":
-          lambdaIn = (t => false);
+          lambdaIn = t => false;
           foreach (var item in value)
           {
             filterValue = Expression.Constant(item, property.Type);
             comparation = Expression.Equal(property, filterValue);
             lambdaIn = lambdaIn.Or(Expression.Lambda<Func<T, bool>>(comparation, parameter));
           }
+
           break;
         default:
           break;
       }
 
       // Cria a expressão lambda
-      var lambda = (lambdaIn == null) ? Expression.Lambda<Func<T, bool>>(comparation, parameter) : lambdaIn;
+      var lambda = lambdaIn ?? Expression.Lambda<Func<T, bool>>(comparation, parameter);
 
       return lambda;
     }
@@ -164,18 +168,20 @@ namespace Telluria.Utils.Crud.QueryFilters
       T convertedClass = (T)Activator.CreateInstance(typeof(T), new object[] { });
 
       // Se a string está preenchida com o padrão
-      if (strFilter != null && strFilter.StartsWith(startPattern) && strFilter.EndsWith(endPattern))
+      if (strFilter != null && strFilter.StartsWith(_startPattern) && strFilter.EndsWith(_endPattern))
       {
         // Transformando a string em um array de filtros utilizando o separador
-        var filters = strFilter.Substring(startPattern.Length, strFilter.Length - (startPattern + endPattern).Length).Split(separatorPattern);
+        var filters = strFilter.Substring(_startPattern.Length, strFilter.Length - (_startPattern + _endPattern).Length).Split(_separatorPattern);
 
         // percorrendo o array de filtros
         foreach (var filter in filters)
         {
-          string[] _keyValue; const int KEY = 0; const int VALUE = 2;
+          string[] _keyValue;
+          const int KEY = 0;
+          const int VALUE = 2;
 
-          string _propertyName = "";
-          string _propertyValue = "";
+          string _propertyName;
+          string _propertyValue;
 
           // verificando o tipo de operação e preenchendo as variáveis de acordo com a operação
           if (filter.Contains("=="))
@@ -188,7 +194,7 @@ namespace Telluria.Utils.Crud.QueryFilters
           }
 
           // codigo utilizado para OR
-          var _hasOrStatement = _keyValue[KEY].Contains(propertySeparatorPattern);
+          var _hasOrStatement = _keyValue[KEY].Contains(_propertySeparatorPattern);
           if (_hasOrStatement) continue;
 
           // keyValue é um array onde a primeira posição representa o nome da propriedade
@@ -197,11 +203,10 @@ namespace Telluria.Utils.Crud.QueryFilters
           _propertyValue = _keyValue[VALUE];
 
           var property = typeof(T).GetProperty(_propertyName);
-          var value = _parse(_propertyValue, property.PropertyType, false);
+          var value = Parse(_propertyValue, property.PropertyType, false);
 
           // atribuindo o valor da propriedade dentro da instancia da classe
           property.SetValue(convertedClass, value);
-
         }
       }
 
@@ -209,7 +214,7 @@ namespace Telluria.Utils.Crud.QueryFilters
     }
 
     // Função privada utilizada para conversão de string para determinado tipo
-    private static dynamic _parse(string value, Type type, bool isArray)
+    private static dynamic Parse(string value, Type type, bool isArray)
     {
       char inSeparatorPattern = '|';
 
@@ -246,7 +251,10 @@ namespace Telluria.Utils.Crud.QueryFilters
             return Enum.Parse(Nullable.GetUnderlyingType(type), value.Trim());
           else return Enum.Parse(type, value.Trim());
         }
-        else return value.Split(inSeparatorPattern).Select(v => Enum.Parse(type, v.Trim())).ToArray();
+        else
+        {
+          return value.Split(inSeparatorPattern).Select(v => Enum.Parse(type, v.Trim())).ToArray();
+        }
       }
       else if (type.FullName.Contains(".Guid"))
       {
@@ -314,7 +322,7 @@ namespace Telluria.Utils.Crud.QueryFilters
       }
     }
 
-    private static Expression _getProperty(ParameterExpression parameter, string propertyName)
+    private static Expression GetProperty(ParameterExpression parameter, string propertyName)
     {
       var nodes = propertyName.Split('.');
       Expression _body = parameter;
@@ -335,7 +343,7 @@ namespace Telluria.Utils.Crud.QueryFilters
       return Expression.Lambda<Func<TSource, TTarget>>(body, parameter);
     }
 
-    static Expression NewObject(Type targetType, Expression source, IEnumerable<string[]> memberPaths, int depth = 0)
+    private static Expression NewObject(Type targetType, Expression source, IEnumerable<string[]> memberPaths, int depth = 0)
     {
       var bindings = new List<MemberBinding>();
       var target = Expression.Constant(null, targetType);
@@ -349,6 +357,7 @@ namespace Telluria.Utils.Crud.QueryFilters
             NewObject(targetMember.Type, sourceMember, childMembers, depth + 1);
         bindings.Add(Expression.Bind(targetMember.Member, targetValue));
       }
+
       return Expression.MemberInit(Expression.New(targetType), bindings);
     }
   }

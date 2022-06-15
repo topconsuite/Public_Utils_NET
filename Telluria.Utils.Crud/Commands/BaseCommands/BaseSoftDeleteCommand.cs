@@ -1,10 +1,8 @@
 using System;
-using Telluria.Utils.Crud.Entities;
 
 namespace Telluria.Utils.Crud.Commands.BaseCommands
 {
-  public class BaseSoftDeleteCommand<TEntity> : ICommand
-    where TEntity : BaseEntity
+  public class BaseSoftDeleteCommand : ICommand
   {
     public Guid Id { get; set; }
 

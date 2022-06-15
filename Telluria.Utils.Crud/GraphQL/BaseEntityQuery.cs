@@ -40,7 +40,7 @@ namespace Telluria.Utils.Crud.GraphQL
 
           var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
           var response = await handler.HandleAsync(
-            new BaseGetCommand<TEntity>(context.GetArgument<Guid>("id"), includes.ToArray())
+            new BaseGetCommand(context.GetArgument<Guid>("id"), includes.ToArray())
           );
 
           if (response.Status == ECommandResultStatus.SUCCESS)
