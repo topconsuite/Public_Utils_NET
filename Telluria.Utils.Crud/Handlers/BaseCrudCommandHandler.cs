@@ -44,10 +44,9 @@ namespace Telluria.Utils.Crud.Handlers
     {
       var result = new CommandResult(
         ECommandResultStatus.ERROR,
-        EServerErrorExtensions.GetErrorMessage(EServerError.INTERNAL_SERVER_ERROR),
+        EServerErrorExtensions.GetErrorMessage(EServerError.INTERNAL_SERVER_ERROR) + " Exception: " + exception.Message,
         EServerError.INTERNAL_SERVER_ERROR.ToString(),
-        null,
-        exception
+        null
       );
 
       return result;
@@ -198,36 +197,6 @@ namespace Telluria.Utils.Crud.Handlers
         var result = await _repository.GetAsync(command.Data.Id, false, command.Includes);
 
         return new CommandResult<TEntity>(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.UPDATE), result);
-      }
-      catch (Exception e)
-      {
-        return HandleErrors(e).ToCommandResult<TEntity>();
-      }
-    }
-
-    public virtual async Task<ICommandResult<TEntity>> HandleAsync(BaseUpsertCommand<TEntity> command)
-    {
-      try
-      {
-        var validationResult = Validator.Validate<TValidator, TEntity>(command.Data, BaseEntityValidations.CREATE, BaseEntityValidations.UPDATE);
-
-        if (!validationResult.IsValid)
-        {
-          return new CommandResult<TEntity>(
-            ECommandResultStatus.ALERT,
-            EClientErrorExtensions.GetErrorMessage(EClientError.BAD_REQUEST),
-            null!,
-            EClientError.BAD_REQUEST.ToString(),
-            validationResult.Errors
-          );
-        }
-
-        await _repository.UpsertAsync(command.Data, command.Match, command.Updater);
-        await _repository.Commit();
-
-        var result = await _repository.GetAsync(command.Data.Id, false, command.Includes);
-
-        return new CommandResult<TEntity>(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.UPSERT), result);
       }
       catch (Exception e)
       {

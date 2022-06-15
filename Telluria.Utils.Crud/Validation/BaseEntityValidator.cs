@@ -22,7 +22,5 @@ namespace Telluria.Utils.Crud.Validation
   {
     public static readonly string CREATE = "CREATE";
     public static readonly string UPDATE = "UPDATE";
-
-    // public static readonly string UPSERT = "UPSERT";
   }
 }
