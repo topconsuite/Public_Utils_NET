@@ -35,3 +35,6 @@ msbuild.wrn
 .vs/
 node_modules
 **/package
+/Telluria.Utils.Crud.Sample/app.db
+/Telluria.Utils.Crud.Sample/app.db-shm
+/Telluria.Utils.Crud.Sample/app.db-wal
