@@ -30,18 +30,10 @@ namespace Telluria.Utils.Crud.GraphQL
         .Argument<NonNullGraphType<GuidGraphType>>("id", $"The id of {entityName}")
         .ResolveAsync(async context =>
         {
-          var includes = new List<string>();
-          var result = context?.SubFields?["result"];
-          var selections = result?.SelectionSet?.Selections;
-
-          // Get the includes (If has any)
-          if (selections != null)
-            RecursiveIncludes.AddRecursiveIncludes(selections, includes);
-
+          var includes = context.GetIncludes();
           var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
-          var response = await handler.HandleAsync(
-            new BaseGetCommand(context.GetArgument<Guid>("id"), includes.ToArray())
-          );
+          var command = new BaseGetCommand(context.GetArgument<Guid>("id"), includes);
+          var response = await handler.HandleAsync(command);
 
           if (response.Status == ECommandResultStatus.SUCCESS)
             return response;
@@ -60,24 +52,17 @@ namespace Telluria.Utils.Crud.GraphQL
         .Argument<BooleanGraphType>("includeDeleted", "Include deleted items").DefaultValue(false)
         .ResolveAsync(async context =>
         {
-          var includes = new List<string>();
-          var result = context?.SubFields?["result"];
-          var selections = result?.SelectionSet?.Selections;
-
-          // Get the includes (If has any)
-          if (selections != null)
-            RecursiveIncludes.AddRecursiveIncludes(selections, includes);
-
-          var contractSellerHandler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
           var page = context.GetArgument<uint>("page");
           var perPage = context.GetArgument<uint>("perPage");
+          var includes = context.GetIncludes();
+          var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
 
           var where = context.GetArgument<List<WhereClauses>>("where");
           var whereClauses = ParserWhereClauses.Parse<TEntity>(where ?? new List<WhereClauses>());
 
           var response = context.GetArgument<bool>("includeDeleted")
-          ? await contractSellerHandler.HandleAsync(new BaseListAllCommand<TEntity>(page, perPage, whereClauses, includes.ToArray()))
-          : await contractSellerHandler.HandleAsync(new BaseListCommand<TEntity>(page, perPage, whereClauses, includes.ToArray()));
+            ? await handler.HandleAsync(new BaseListAllCommand<TEntity>(page, perPage, whereClauses, includes))
+            : await handler.HandleAsync(new BaseListCommand<TEntity>(page, perPage, whereClauses, includes));
 
           if (response.Status == ECommandResultStatus.SUCCESS)
             return response;

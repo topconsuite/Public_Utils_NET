@@ -27,7 +27,6 @@ namespace Telluria.Utils.Crud.Handlers
       CREATE,
       CREATE_MANY,
       UPDATE,
-      UPSERT,
       SOFT_DELETE,
       REMOVE,
     }
@@ -64,7 +63,6 @@ namespace Telluria.Utils.Crud.Handlers
         EBaseCrudCommands.CREATE => nameof(EBaseCrudCommands.CREATE),
         EBaseCrudCommands.CREATE_MANY => nameof(EBaseCrudCommands.CREATE_MANY),
         EBaseCrudCommands.UPDATE => nameof(EBaseCrudCommands.UPDATE),
-        EBaseCrudCommands.UPSERT => nameof(EBaseCrudCommands.UPSERT),
         EBaseCrudCommands.SOFT_DELETE => nameof(EBaseCrudCommands.SOFT_DELETE),
         EBaseCrudCommands.REMOVE => nameof(EBaseCrudCommands.REMOVE),
         _ => ""
