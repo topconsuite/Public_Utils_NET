@@ -10,7 +10,7 @@ namespace Telluria.Utils.Crud.QueryFilters
   public static class ParserWhereClauses
   {
     public static Expression<Func<TEntity, bool>> Parse<TEntity>(IEnumerable<WhereClauses> whereClauses)
-    where TEntity : class
+      where TEntity : class
     {
       var whereQuery = new StringBuilder("$(");
 
