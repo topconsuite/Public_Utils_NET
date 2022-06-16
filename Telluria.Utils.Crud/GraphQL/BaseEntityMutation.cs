@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using GraphQL;
 using GraphQL.Types;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,7 +8,6 @@ using Telluria.Utils.Crud.Commands.BaseCommands;
 using Telluria.Utils.Crud.Entities;
 using Telluria.Utils.Crud.GraphQL.Types;
 using Telluria.Utils.Crud.Handlers;
-using Telluria.Utils.Crud.QueryFilters;
 using Telluria.Utils.Crud.Repositories;
 using Telluria.Utils.Crud.Validation;
 
@@ -26,27 +24,17 @@ namespace Telluria.Utils.Crud.GraphQL
       where TGraphInputType : InputObjectGraphType<TEntity>
     {
       var entityName = typeof(TEntity).Name;
-      var entityNameCamalCase = char.ToLowerInvariant(entityName[0]) + entityName[1..];
 
       Field<CommandResultType<TEntity, TGraphType>>()
         .Name("Create")
-        .Argument<NonNullGraphType<TGraphInputType>>(
-          entityNameCamalCase, $"The {entityName} to create")
+        .Argument<NonNullGraphType<TGraphInputType>>(entityName.ToCamelCase(), $"The {entityName} to create")
         .ResolveAsync(async context =>
         {
-          var includes = new List<string>();
-          var result = context?.SubFields?["result"];
-          var selections = result?.SelectionSet?.Selections;
-
-          // Get the includes (If has any)
-          if (selections != null)
-            RecursiveIncludes.AddRecursiveIncludes(selections, includes);
-
+          var entity = context.GetArgument<TEntity>(entityName.ToCamelCase());
+          var includes = context.GetIncludes();
           var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
-          var response = await handler.HandleAsync(
-            new BaseCreateCommand<TEntity>(
-              context.GetArgument<TEntity>(entityNameCamalCase), includes.ToArray())
-          );
+          var command = new BaseCreateCommand<TEntity>(entity, includes);
+          var response = await handler.HandleAsync(command);
 
           if (response.Status == ECommandResultStatus.SUCCESS)
             return response;
@@ -59,31 +47,24 @@ namespace Telluria.Utils.Crud.GraphQL
       where TGraphInputType : BaseUpdateInputType<TEntity>
     {
       var entityName = typeof(TEntity).Name;
-      var entityNameCamalCase = char.ToLowerInvariant(entityName[0]) + entityName[1..];
 
       Field<CommandResultType<TEntity, TGraphType>>()
         .Name("Update")
-        .Argument<NonNullGraphType<TGraphInputType>>(
-          entityNameCamalCase, $"The {entityName} to update")
+        .Argument<NonNullGraphType<TGraphInputType>>(entityName.ToCamelCase(), $"The {entityName} to update")
         .ResolveAsync(async context =>
         {
-          var includes = new List<string>();
-          var result = context?.SubFields?["result"];
-          var selections = result?.SelectionSet?.Selections;
-
-          // Get the includes (If has any)
-          if (selections != null)
-            RecursiveIncludes.AddRecursiveIncludes(selections, includes);
-
+          var entityDynamic = context.GetArgument<dynamic>(entityName.ToCamelCase());
+          var includes = context.GetIncludes();
           var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
-          var entityDynamic = context.GetArgument<dynamic>(entityNameCamalCase);
-          var entityDb = handler.HandleAsync(new BaseGetCommand(entityDynamic["id"])).Result.Result;
+
+          var getCommand = new BaseGetCommand(entityDynamic["id"]);
+          var oldResponse = await handler.HandleAsync(getCommand);
+          var entityDb = oldResponse.Result;
 
           JsonConvert.PopulateObject(JsonConvert.SerializeObject(entityDynamic), entityDb);
 
-          var response = await handler.HandleAsync(
-            new BaseUpdateCommand<TEntity>(entityDb, includes.ToArray())
-          );
+          var command = new BaseUpdateCommand<TEntity>(entityDb, includes);
+          var response = await handler.HandleAsync(command);
 
           if (response.Status == ECommandResultStatus.SUCCESS)
             return response;
