@@ -10,7 +10,7 @@ namespace Telluria.Utils.Crud.QueryFilters
 {
   public static class ExpressionParser
   {
-    // Definição do padrão da string
+    // string pattern definitions
     private static readonly string _startPattern = "$(";
     private static readonly string _endPattern = ")";
     private static readonly char _separatorPattern = ';';
@@ -30,79 +30,77 @@ namespace Telluria.Utils.Crud.QueryFilters
     public static Expression<Func<T, bool>> Parse<T>(string strFilter)
       where T : class
     {
-      // Inicializando o filtro com default TRUE
+      // Initializing the filter with default TRUE
       var predicate = PredicateBuilder.New<T>(true);
 
-      // Se a string não está preenchida com o padrão
+      // Abort if string does not match pattern
       if (strFilter == null || !strFilter.StartsWith(_startPattern) || !strFilter.EndsWith(_endPattern))
         return predicate;
 
-      // Transformando a string em um array de filtros utilizando o separador
+      // Transforming the string into an array of filters
       var filters = strFilter.Substring(_startPattern.Length, strFilter.Length - (_startPattern + _endPattern).Length).Split(_separatorPattern);
 
-      // percorrendo o array de filtros
       foreach (var filter in filters)
       {
-        string[] _keyValue;
+        string[] keyValue;
         const int KEY = 0;
         const int VALUE = 1;
 
-        string _propertyName = "";
-        string _propertyValue = "";
-        string _method;
+        string propertyName = "";
+        string propertyValue = "";
+        string method;
 
         var operation = _possibleOperations.FirstOrDefault(t => filter.Contains(t.Key));
 
-        // operação não encontrada
+        // operation not found
         if (operation.Key == null) continue;
 
-        // verificando o tipo de operação e preenchendo as variáveis de acordo com a operação
-        _keyValue = filter.Split(operation.Key);
-        _method = operation.Value;
+        // setting the variables according to the operation
+        keyValue = filter.Split(operation.Key);
+        method = operation.Value;
 
-        // keyValue é um array onde a primeira posição representa o nome da propriedade
-        // e a ultima posição representa o valor a ser filtrado na propriedade
-        _propertyName = _keyValue[KEY];
-        _propertyValue = _keyValue[VALUE];
+        // "keyValue" is an array where the first position represents the property name
+        // and the last position represents the value to be filtered in the property
+        propertyName = keyValue[KEY];
+        propertyValue = keyValue[VALUE];
 
-        // codigo utilizado para OR
-        var _hasOrStatement = _propertyName.Contains(_propertySeparatorPattern);
+        var hasOrStatement = propertyName.Contains(_propertySeparatorPattern);
 
         Expression<Func<T, bool>> lambda = t => false;
 
-        if (!_hasOrStatement)
+        if (!hasOrStatement)
         {
-          lambda = ConvertToLambda<T>(_propertyName, _propertyValue, _method);
+          lambda = ConvertToLambda<T>(propertyName, propertyValue, method);
         }
         else
         {
-          var _propertyNames = _propertyName.Split(_propertySeparatorPattern);
+          var properties = propertyName.Split(_propertySeparatorPattern);
 
-          foreach (var propertyName in _propertyNames)
+          foreach (var property in properties)
           {
-            lambda = lambda.Or(ConvertToLambda<T>(propertyName.FirstCharToUpper(), _propertyValue, _method));
+            lambda = lambda.Or(ConvertToLambda<T>(property.FirstCharToUpper(), propertyValue, method));
           }
         }
 
-        // Adiciona a cláusula ao filtro
+        // Add clause to filter
         predicate.And(lambda);
       }
 
       return predicate;
     }
 
-    public static Expression<Func<T, bool>> ConvertToLambda<T>(string _propertyName, string _propertyValue, string _method)
+    public static Expression<Func<T, bool>> ConvertToLambda<T>(string propertyName, string propertyValue, string method)
     {
       var parameter = Expression.Parameter(typeof(T), "t");
-      var property = GetProperty(parameter, _propertyName);
-      var value = Parse(_propertyValue, property.Type, _method.Equals("In"));
-      var filterValue = !_method.Equals("In") ? Expression.Constant(value, property.Type) : Expression.Constant(value);
+      var property = GetProperty(parameter, propertyName);
+      var value = Parse(propertyValue, property.Type, method.Equals("In"));
+      var filterValue = !method.Equals("In") ? Expression.Constant(value, property.Type) : Expression.Constant(value);
       Expression comparation = null;
 
       Expression<Func<T, bool>> lambdaIn = null;
 
-      // Realiza a comparação de acordo com a operação
-      switch (_method)
+      // Performs the comparison according to the operation
+      switch (method)
       {
         case "Equal":
           comparation = Expression.Equal(property, filterValue);
@@ -136,7 +134,7 @@ namespace Telluria.Utils.Crud.QueryFilters
           break;
       }
 
-      // Cria a expressão lambda
+      // Create the lambda expression
       var lambda = lambdaIn ?? Expression.Lambda<Func<T, bool>>(comparation, parameter);
 
       return lambda;
@@ -144,49 +142,47 @@ namespace Telluria.Utils.Crud.QueryFilters
 
     public static T Convert<T>(string strFilter)
     {
-      // Criando uma nava instancia do Tipo da classe
+      // Creating a new instance of the Class Type
       T convertedClass = (T)Activator.CreateInstance(typeof(T), Array.Empty<object>());
 
-      // Se a string não está preenchida com o padrão
+      // Abort if string does not match pattern
       if (strFilter == null || !strFilter.StartsWith(_startPattern) || !strFilter.EndsWith(_endPattern))
         return convertedClass;
 
-      // Transformando a string em um array de filtros utilizando o separador
+      // Transforming the string into an array of filters
       var filters = strFilter.Substring(_startPattern.Length, strFilter.Length - (_startPattern + _endPattern).Length).Split(_separatorPattern);
 
-      // percorrendo o array de filtros
       foreach (var filter in filters)
       {
-        string[] _keyValue;
+        string[] keyValue;
         const int KEY = 0;
-        const int VALUE = 2;
+        const int VALUE = 1;
 
-        string _propertyName;
-        string _propertyValue;
+        string propertyName;
+        string propertyValue;
 
-        // verificando o tipo de operação e preenchendo as variáveis de acordo com a operação
+        // setting the variables according to the operation
         if (filter.Contains("=="))
         {
-          _keyValue = filter.Split(new char[] { '=', '=' });
+          keyValue = filter.Split("==");
         }
         else
         {
           continue;
         }
 
-        // codigo utilizado para OR
-        var _hasOrStatement = _keyValue[KEY].Contains(_propertySeparatorPattern);
-        if (_hasOrStatement) continue;
+        var hasOrStatement = keyValue[KEY].Contains(_propertySeparatorPattern);
+        if (hasOrStatement) continue;
 
-        // keyValue é um array onde a primeira posição representa o nome da propriedade
-        // e a ultima posição representa o valor a ser filtrado na propriedade
-        _propertyName = _keyValue[KEY].FirstCharToUpper();
-        _propertyValue = _keyValue[VALUE];
+        // "keyValue" is an array where the first position represents the property name
+        // and the last position represents the value to be filtered in the property
+        propertyName = keyValue[KEY].FirstCharToUpper();
+        propertyValue = keyValue[VALUE];
 
-        var property = typeof(T).GetProperty(_propertyName);
-        var value = Parse(_propertyValue, property.PropertyType, false);
+        var property = typeof(T).GetProperty(propertyName);
+        var value = Parse(propertyValue, property.PropertyType, false);
 
-        // atribuindo o valor da propriedade dentro da instancia da classe
+        // assigning property value inside class instance
         property.SetValue(convertedClass, value);
       }
 
@@ -278,7 +274,7 @@ namespace Telluria.Utils.Crud.QueryFilters
       return value.Trim().Split(_inSeparatorPattern).Select(t => converter(t.Trim())).ToArray();
     }
 
-    // Função privada utilizada para conversão de string para determinado tipo
+    // function used for converting string to given type
     private static dynamic Parse(string value, Type type, bool isArray)
     {
       if (type.Equals(typeof(string)) && isArray)
@@ -299,12 +295,12 @@ namespace Telluria.Utils.Crud.QueryFilters
     private static Expression GetProperty(ParameterExpression parameter, string propertyName)
     {
       var nodes = propertyName.Split('.');
-      Expression _body = parameter;
+      Expression body = parameter;
 
       for (int i = 0; i < nodes.Length; i++)
-        _body = Expression.PropertyOrField(_body, nodes[i]);
+        body = Expression.PropertyOrField(body, nodes[i]);
 
-      return _body;
+      return body;
     }
 
     public static Expression<Func<TSource, TTarget>> BuildSelector<TSource, TTarget>(string members) =>

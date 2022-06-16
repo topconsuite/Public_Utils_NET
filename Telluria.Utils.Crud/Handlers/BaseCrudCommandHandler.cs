@@ -82,6 +82,7 @@ namespace Telluria.Utils.Crud.Handlers
       try
       {
         var result = await _repository.ListAsync(command.Page, command.PerPage, false, command.Where, command.Includes);
+
         return new ListCommandResult<TEntity>(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.LIST), result);
       }
       catch (Exception e)
@@ -95,6 +96,7 @@ namespace Telluria.Utils.Crud.Handlers
       try
       {
         var result = await _repository.ListAllAsync(command.Page, command.PerPage, false, command.Where, command.Includes);
+
         return new ListCommandResult<TEntity>(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.LIST_ALL), result);
       }
       catch (Exception e)
@@ -109,6 +111,7 @@ namespace Telluria.Utils.Crud.Handlers
       {
         var result = await _repository.GetAsync(command.Id, false, command.Includes);
         var message = result != null ? GetSuccessMessage(EBaseCrudCommands.GET) : $"Id '{command.Id}' not found";
+
         return new CommandResult<TEntity>(ECommandResultStatus.SUCCESS, message, result);
       }
       catch (Exception e)
@@ -166,7 +169,11 @@ namespace Telluria.Utils.Crud.Handlers
 
         await _repository.AddAsync(command.Data);
         await _repository.Commit();
-        return new CommandResult<IEnumerable<TEntity>>(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.CREATE_MANY), command.Data);
+
+        var createdIds = command.Data.Select(t => t.Id);
+        var result = await _repository.ListAsync(false, t => createdIds.Contains(t.Id), command.Includes);
+
+        return new CommandResult<IEnumerable<TEntity>>(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.CREATE_MANY), result);
       }
       catch (Exception e)
       {
@@ -223,6 +230,7 @@ namespace Telluria.Utils.Crud.Handlers
 
         await _repository.SoftDeleteAsync(entity);
         await _repository.Commit();
+
         return new CommandResult(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.SOFT_DELETE));
       }
       catch (Exception e)
@@ -250,6 +258,7 @@ namespace Telluria.Utils.Crud.Handlers
 
         await _repository.RemoveAsync(entity);
         await _repository.Commit();
+
         return new CommandResult(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.REMOVE));
       }
       catch (Exception e)
@@ -264,6 +273,7 @@ namespace Telluria.Utils.Crud.Handlers
       {
         var result = await _repository.FindAsync(false, command.Where, command.Includes);
         var message = result != null ? GetSuccessMessage(EBaseCrudCommands.FIND) : "Not found";
+
         return new CommandResult<TEntity>(ECommandResultStatus.SUCCESS, message, result);
       }
       catch (Exception e)
