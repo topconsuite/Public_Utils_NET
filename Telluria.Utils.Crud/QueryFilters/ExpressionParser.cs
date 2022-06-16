@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using LinqKit;
@@ -14,6 +15,7 @@ namespace Telluria.Utils.Crud.QueryFilters
     private static readonly string _endPattern = ")";
     private static readonly char _separatorPattern = ';';
     private static readonly char _propertySeparatorPattern = '|';
+    private static readonly char _inSeparatorPattern = '|';
 
     public static Expression<Func<T, bool>> Parse<T>(string strFilter)
       where T : class
@@ -21,91 +23,91 @@ namespace Telluria.Utils.Crud.QueryFilters
       // Inicializando o filtro com default TRUE
       var predicate = PredicateBuilder.New<T>(true);
 
-      // Se a string está preenchida com o padrão
-      if (strFilter != null && strFilter.StartsWith(_startPattern) && strFilter.EndsWith(_endPattern))
+      // Se a string não está preenchida com o padrão
+      if (strFilter == null || !strFilter.StartsWith(_startPattern) || !strFilter.EndsWith(_endPattern))
+        return predicate;
+
+      // Transformando a string em um array de filtros utilizando o separador
+      var filters = strFilter.Substring(_startPattern.Length, strFilter.Length - (_startPattern + _endPattern).Length).Split(_separatorPattern);
+
+      // percorrendo o array de filtros
+      foreach (var filter in filters)
       {
-        // Transformando a string em um array de filtros utilizando o separador
-        var filters = strFilter.Substring(_startPattern.Length, strFilter.Length - (_startPattern + _endPattern).Length).Split(_separatorPattern);
+        string[] _keyValue;
+        const int KEY = 0;
+        const int VALUE = 2;
 
-        // percorrendo o array de filtros
-        foreach (var filter in filters)
+        string _propertyName = "";
+        string _propertyValue = "";
+        string _method;
+
+        // verificando o tipo de operação e preenchendo as variáveis de acordo com a operação
+        if (filter.Contains("=="))
         {
-          string[] _keyValue;
-          const int KEY = 0;
-          const int VALUE = 2;
-
-          string _propertyName = "";
-          string _propertyValue = "";
-          string _method;
-
-          // verificando o tipo de operação e preenchendo as variáveis de acordo com a operação
-          if (filter.Contains("=="))
-          {
-            _keyValue = filter.Split(new char[] { '=', '=' });
-            _method = "Equal";
-          }
-          else if (filter.Contains(">="))
-          {
-            _keyValue = filter.Split(new char[] { '>', '=' });
-            _method = "GreaterThanOrEqual";
-          }
-          else if (filter.Contains("<="))
-          {
-            _keyValue = filter.Split(new char[] { '<', '=' });
-            _method = "LessThanOrEqual";
-          }
-          else if (filter.Contains(">>"))
-          {
-            _keyValue = filter.Split(new char[] { '>', '>' });
-            _method = "GreaterThan";
-          }
-          else if (filter.Contains("<<"))
-          {
-            _keyValue = filter.Split(new char[] { '<', '<' });
-            _method = "LessThan";
-          }
-          else if (filter.Contains("%="))
-          {
-            _keyValue = filter.Split(new char[] { '%', '=' });
-            _method = "Contains";
-          }
-          else if (filter.Contains("%>"))
-          {
-            _keyValue = filter.Split(new char[] { '%', '>' });
-            _method = "In";
-          }
-          else
-          {
-            continue;
-          }
-
-          // keyValue é um array onde a primeira posição representa o nome da propriedade
-          // e a ultima posição representa o valor a ser filtrado na propriedade
-          _propertyName = _keyValue[KEY];
-          _propertyValue = _keyValue[VALUE];
-
-          // codigo utilizado para OR
-          var _hasOrStatement = _propertyName.Contains(_propertySeparatorPattern);
-
-          Expression<Func<T, bool>> lambda = t => false;
-
-          if (!_hasOrStatement)
-          {
-            lambda = ConvertToLambda<T>(_propertyName, _propertyValue, _method);
-          }
-          else
-          {
-            var _propertyNames = _propertyName.Split(_propertySeparatorPattern);
-
-            foreach (var propertyName in _propertyNames)
-            {
-              lambda = lambda.Or(ConvertToLambda<T>(propertyName.FirstCharToUpper(), _propertyValue, _method));
-            }
-          }
-
-          // Adiciona a cláusula ao filtro
-          predicate.And(lambda);
+          _keyValue = filter.Split(new char[] { '=', '=' });
+          _method = "Equal";
         }
+        else if (filter.Contains(">="))
+        {
+          _keyValue = filter.Split(new char[] { '>', '=' });
+          _method = "GreaterThanOrEqual";
+        }
+        else if (filter.Contains("<="))
+        {
+          _keyValue = filter.Split(new char[] { '<', '=' });
+          _method = "LessThanOrEqual";
+        }
+        else if (filter.Contains(">>"))
+        {
+          _keyValue = filter.Split(new char[] { '>', '>' });
+          _method = "GreaterThan";
+        }
+        else if (filter.Contains("<<"))
+        {
+          _keyValue = filter.Split(new char[] { '<', '<' });
+          _method = "LessThan";
+        }
+        else if (filter.Contains("%="))
+        {
+          _keyValue = filter.Split(new char[] { '%', '=' });
+          _method = "Contains";
+        }
+        else if (filter.Contains("%>"))
+        {
+          _keyValue = filter.Split(new char[] { '%', '>' });
+          _method = "In";
+        }
+        else
+        {
+          continue;
+        }
+
+        // keyValue é um array onde a primeira posição representa o nome da propriedade
+        // e a ultima posição representa o valor a ser filtrado na propriedade
+        _propertyName = _keyValue[KEY];
+        _propertyValue = _keyValue[VALUE];
+
+        // codigo utilizado para OR
+        var _hasOrStatement = _propertyName.Contains(_propertySeparatorPattern);
+
+        Expression<Func<T, bool>> lambda = t => false;
+
+        if (!_hasOrStatement)
+        {
+          lambda = ConvertToLambda<T>(_propertyName, _propertyValue, _method);
+        }
+        else
+        {
+          var _propertyNames = _propertyName.Split(_propertySeparatorPattern);
+
+          foreach (var propertyName in _propertyNames)
+          {
+            lambda = lambda.Or(ConvertToLambda<T>(propertyName.FirstCharToUpper(), _propertyValue, _method));
+          }
+        }
+
+        // Adiciona a cláusula ao filtro
+        predicate.And(lambda);
       }
 
       return predicate;
@@ -165,161 +167,155 @@ namespace Telluria.Utils.Crud.QueryFilters
     public static T Convert<T>(string strFilter)
     {
       // Criando uma nava instancia do Tipo da classe
-      T convertedClass = (T)Activator.CreateInstance(typeof(T), new object[] { });
+      T convertedClass = (T)Activator.CreateInstance(typeof(T), Array.Empty<object>());
 
-      // Se a string está preenchida com o padrão
-      if (strFilter != null && strFilter.StartsWith(_startPattern) && strFilter.EndsWith(_endPattern))
+      // Se a string não está preenchida com o padrão
+      if (strFilter == null || !strFilter.StartsWith(_startPattern) || !strFilter.EndsWith(_endPattern))
+        return convertedClass;
+
+      // Transformando a string em um array de filtros utilizando o separador
+      var filters = strFilter.Substring(_startPattern.Length, strFilter.Length - (_startPattern + _endPattern).Length).Split(_separatorPattern);
+
+      // percorrendo o array de filtros
+      foreach (var filter in filters)
       {
-        // Transformando a string em um array de filtros utilizando o separador
-        var filters = strFilter.Substring(_startPattern.Length, strFilter.Length - (_startPattern + _endPattern).Length).Split(_separatorPattern);
+        string[] _keyValue;
+        const int KEY = 0;
+        const int VALUE = 2;
 
-        // percorrendo o array de filtros
-        foreach (var filter in filters)
+        string _propertyName;
+        string _propertyValue;
+
+        // verificando o tipo de operação e preenchendo as variáveis de acordo com a operação
+        if (filter.Contains("=="))
         {
-          string[] _keyValue;
-          const int KEY = 0;
-          const int VALUE = 2;
-
-          string _propertyName;
-          string _propertyValue;
-
-          // verificando o tipo de operação e preenchendo as variáveis de acordo com a operação
-          if (filter.Contains("=="))
-          {
-            _keyValue = filter.Split(new char[] { '=', '=' });
-          }
-          else
-          {
-            continue;
-          }
-
-          // codigo utilizado para OR
-          var _hasOrStatement = _keyValue[KEY].Contains(_propertySeparatorPattern);
-          if (_hasOrStatement) continue;
-
-          // keyValue é um array onde a primeira posição representa o nome da propriedade
-          // e a ultima posição representa o valor a ser filtrado na propriedade
-          _propertyName = _keyValue[KEY].FirstCharToUpper();
-          _propertyValue = _keyValue[VALUE];
-
-          var property = typeof(T).GetProperty(_propertyName);
-          var value = Parse(_propertyValue, property.PropertyType, false);
-
-          // atribuindo o valor da propriedade dentro da instancia da classe
-          property.SetValue(convertedClass, value);
+          _keyValue = filter.Split(new char[] { '=', '=' });
         }
+        else
+        {
+          continue;
+        }
+
+        // codigo utilizado para OR
+        var _hasOrStatement = _keyValue[KEY].Contains(_propertySeparatorPattern);
+        if (_hasOrStatement) continue;
+
+        // keyValue é um array onde a primeira posição representa o nome da propriedade
+        // e a ultima posição representa o valor a ser filtrado na propriedade
+        _propertyName = _keyValue[KEY].FirstCharToUpper();
+        _propertyValue = _keyValue[VALUE];
+
+        var property = typeof(T).GetProperty(_propertyName);
+        var value = Parse(_propertyValue, property.PropertyType, false);
+
+        // atribuindo o valor da propriedade dentro da instancia da classe
+        property.SetValue(convertedClass, value);
       }
 
       return convertedClass;
     }
 
+    private static bool In(this Type source, params Type[] comparisons)
+    {
+      return comparisons.Contains(source);
+    }
+
+    private static bool IsStruct<T>(this Type source)
+      where T : struct
+    {
+      return source.In(typeof(T), typeof(T?));
+    }
+
+    private static bool IsNullableEnum(this Type source)
+    {
+      Type underlyingType = Nullable.GetUnderlyingType(source);
+      return underlyingType?.IsEnum ?? false;
+    }
+
+    private static dynamic ParseInvariantCulture<T>(string value, bool isArray, Func<string, IFormatProvider, T> converter)
+    {
+      if (!isArray) return converter(value.Trim(), CultureInfo.InvariantCulture);
+      return value.Trim().Split(_inSeparatorPattern).Select(t => converter(t.Trim(), CultureInfo.InvariantCulture)).ToArray();
+    }
+
+    private static dynamic ParseEnum(string value, bool isArray, Type enumType)
+    {
+      if (!isArray) return Enum.Parse(enumType, value.Trim());
+      return value.Split(_inSeparatorPattern).Select(v => Enum.Parse(enumType, v.Trim())).ToArray();
+    }
+
+    private static dynamic ParseStruct(string value, Type type, bool isArray)
+    {
+      if (type.IsStruct<DateTime>())
+        return ParseInvariantCulture(value, isArray, DateTime.Parse);
+
+      if (type.IsStruct<bool>())
+        return Parse(value, isArray, bool.Parse);
+
+      if (type.IsStruct<Guid>())
+        return Parse(value, isArray, Guid.Parse);
+
+      if (type.IsStruct<int>())
+        return ParseInvariantCulture(value, isArray, int.Parse);
+
+      if (type.IsStruct<uint>())
+        return ParseInvariantCulture(value, isArray, uint.Parse);
+
+      if (type.IsStruct<long>())
+        return ParseInvariantCulture(value, isArray, long.Parse);
+
+      if (type.IsStruct<ulong>())
+        return ParseInvariantCulture(value, isArray, ulong.Parse);
+
+      if (type.IsStruct<short>())
+        return ParseInvariantCulture(value, isArray, short.Parse);
+
+      if (type.IsStruct<ushort>())
+        return ParseInvariantCulture(value, isArray, ushort.Parse);
+
+      if (type.IsStruct<float>())
+        return ParseInvariantCulture(value, isArray, float.Parse);
+
+      if (type.IsStruct<double>())
+        return ParseInvariantCulture(value, isArray, double.Parse);
+
+      if (type.IsStruct<decimal>())
+        return ParseInvariantCulture(value, isArray, decimal.Parse);
+
+      if (type.IsStruct<byte>())
+        return ParseInvariantCulture(value, isArray, byte.Parse);
+
+      if (type.IsStruct<sbyte>())
+        return ParseInvariantCulture(value, isArray, sbyte.Parse);
+
+      if (type.IsStruct<char>())
+        return Parse(value, isArray, char.Parse);
+
+      return null;
+    }
+
+    private static dynamic Parse<T>(string value, bool isArray, Converter<string, T> converter)
+    {
+      if (!isArray) return converter(value.Trim());
+      return value.Trim().Split(_inSeparatorPattern).Select(t => converter(t.Trim())).ToArray();
+    }
+
     // Função privada utilizada para conversão de string para determinado tipo
     private static dynamic Parse(string value, Type type, bool isArray)
     {
-      char inSeparatorPattern = '|';
+      if (type.Equals(typeof(string)) && isArray)
+        return value.Split(_inSeparatorPattern).Select(t => t.Trim());
 
-      if (type.FullName.Contains(".Int"))
-      {
-        if (!isArray) return int.Parse(value.Trim());
-        else return Array.ConvertAll(value.Split(inSeparatorPattern).Select(t => t.Trim()).ToArray(), int.Parse);
-      }
-      else if (type.FullName.Contains(".UInt"))
-      {
-        if (!isArray) return uint.Parse(value.Trim());
-        else return Array.ConvertAll(value.Split(inSeparatorPattern).Select(t => t.Trim()).ToArray(), uint.Parse);
-      }
-      else if (type.FullName.Contains(".DateTime"))
-      {
-        if (!isArray) return DateTime.Parse(value.Trim());
-        else return Array.ConvertAll(value.Trim().Split(inSeparatorPattern).Select(t => t.Trim()).ToArray(), DateTime.Parse);
-      }
-      else if (type.FullName.Contains(".Bool"))
-      {
-        if (!isArray) return bool.Parse(value.Trim());
-        else return Array.ConvertAll(value.Split(inSeparatorPattern).Select(t => t.Trim()).ToArray(), bool.Parse);
-      }
-      else if (type.FullName.Contains(".String"))
-      {
-        if (!isArray) return value;
-        else return value.Split(inSeparatorPattern).Select(t => t.Trim());
-      }
-      else if (type.FullName.Contains(".Domain.Enums"))
-      {
-        if (!isArray)
-        {
-          if (type.FullName.Contains("Nullable"))
-            return Enum.Parse(Nullable.GetUnderlyingType(type), value.Trim());
-          else return Enum.Parse(type, value.Trim());
-        }
-        else
-        {
-          return value.Split(inSeparatorPattern).Select(v => Enum.Parse(type, v.Trim())).ToArray();
-        }
-      }
-      else if (type.FullName.Contains(".Guid"))
-      {
-        if (!isArray) return Guid.Parse(value.Trim());
-        else return Array.ConvertAll(value.Split(inSeparatorPattern).Select(t => t.Trim()).ToArray(), Guid.Parse);
-      }
-      else if (type.FullName.Contains(".Double"))
-      {
-        if (!isArray) return double.Parse(value.Trim());
-        else return Array.ConvertAll(value.Split(inSeparatorPattern).Select(t => t.Trim()).ToArray(), double.Parse);
-      }
-      else if (type.FullName.Contains(".Long"))
-      {
-        if (!isArray) return long.Parse(value.Trim());
-        else return Array.ConvertAll(value.Split(inSeparatorPattern).Select(t => t.Trim()).ToArray(), long.Parse);
-      }
-      else if (type.FullName.Contains(".Short"))
-      {
-        if (!isArray) return short.Parse(value.Trim());
-        else return Array.ConvertAll(value.Split(inSeparatorPattern).Select(t => t.Trim()).ToArray(), short.Parse);
-      }
-      else if (type.FullName.Contains(".ULong"))
-      {
-        if (!isArray) return ulong.Parse(value.Trim());
-        else return Array.ConvertAll(value.Split(inSeparatorPattern).Select(t => t.Trim()).ToArray(), ulong.Parse);
-      }
-      else if (type.FullName.Contains(".UShort"))
-      {
-        if (!isArray) return ushort.Parse(value.Trim());
-        else return Array.ConvertAll(value.Split(inSeparatorPattern).Select(t => t.Trim()).ToArray(), ushort.Parse);
-      }
-      else if (type.FullName.Contains(".Float"))
-      {
-        if (!isArray) return float.Parse(value.Trim());
-        else return Array.ConvertAll(value.Split(inSeparatorPattern).Select(t => t.Trim()).ToArray(), float.Parse);
-      }
-      else if (type.FullName.Contains(".Decimal"))
-      {
-        if (!isArray) return decimal.Parse(value.Trim());
-        else return Array.ConvertAll(value.Split(inSeparatorPattern).Select(t => t.Trim()).ToArray(), decimal.Parse);
-      }
-      else if (type.FullName.Contains(".Byte"))
-      {
-        if (!isArray) return byte.Parse(value.Trim());
-        else return Array.ConvertAll(value.Split(inSeparatorPattern).Select(t => t.Trim()).ToArray(), byte.Parse);
-      }
-      else if (type.FullName.Contains(".SByte"))
-      {
-        if (!isArray) return sbyte.Parse(value.Trim());
-        else return Array.ConvertAll(value.Split(inSeparatorPattern).Select(t => t.Trim()).ToArray(), sbyte.Parse);
-      }
-      else if (type.FullName.Contains(".Char"))
-      {
-        if (!isArray) return char.Parse(value.Trim());
-        else return Array.ConvertAll(value.Split(inSeparatorPattern).Select(t => t.Trim()).ToArray(), char.Parse);
-      }
-      else if (type.BaseType.FullName.Contains(".Enum"))
-      {
-        if (!isArray) return Enum.Parse(type, value.Trim());
-        else return value.Split(inSeparatorPattern).Select(v => Enum.Parse(type, v.Trim())).ToArray();
-      }
-      else
-      {
-        return null;
-      }
+      if (type.Equals(typeof(string)))
+        return value;
+
+      if (type.IsEnum)
+        return ParseEnum(value, isArray, type);
+
+      if (type.IsNullableEnum())
+        return ParseEnum(value, isArray, Nullable.GetUnderlyingType(type));
+
+      return ParseStruct(value, type, isArray);
     }
 
     private static Expression GetProperty(ParameterExpression parameter, string propertyName)

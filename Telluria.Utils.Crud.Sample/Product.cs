@@ -13,12 +13,27 @@ using Telluria.Utils.Crud.Validation;
 
 namespace Telluria.Utils.Crud.Sample
 {
+  /*
+   * MIGRATIONS COMMANDS:
+   * -> dotnet ef migrations add InitialCreate
+   * -> dotnet ef database update
+   */
+
+  // Domain.Enums
+  public enum EProductStockType
+  {
+    OWN,
+    FROM_THIRD_PARTY,
+    IN_THIRD_PARTY,
+  }
+
   // Domain.Entities
   public class Product : BaseEntity
   {
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public decimal Price { get; set; }
+    public EProductStockType? StockType { get; set; }
   }
 
   // Domain.Validators
@@ -106,7 +121,8 @@ namespace Telluria.Utils.Crud.Sample
     {
       Field(x => x.Code, nullable: false);
       Field(x => x.Name, nullable: false);
-      Field(x => x.Price, nullable: true);
+      Field(x => x.Price, nullable: false);
+      Field(x => x.StockType, nullable: true);
     }
   }
 
@@ -116,7 +132,8 @@ namespace Telluria.Utils.Crud.Sample
     {
       Field(x => x.Code, nullable: false);
       Field(x => x.Name, nullable: false);
-      Field(x => x.Price, nullable: true);
+      Field(x => x.Price, nullable: false);
+      Field(x => x.StockType, nullable: true);
     }
   }
 
@@ -124,9 +141,10 @@ namespace Telluria.Utils.Crud.Sample
   {
     public ProductUpdateInputType()
     {
-      Field(x => x.Code, nullable: false);
-      Field(x => x.Name, nullable: false);
+      Field(x => x.Code, nullable: true);
+      Field(x => x.Name, nullable: true);
       Field(x => x.Price, nullable: true);
+      Field(x => x.StockType, nullable: true);
     }
   }
 

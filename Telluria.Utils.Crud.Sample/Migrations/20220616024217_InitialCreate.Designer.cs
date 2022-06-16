@@ -11,7 +11,7 @@ using Telluria.Utils.Crud.Sample;
 namespace Telluria.Utils.Crud.Sample.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20220613155045_InitialCreate")]
+    [Migration("20220616024217_InitialCreate")]
     partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -44,6 +44,9 @@ namespace Telluria.Utils.Crud.Sample.Migrations
 
                     b.Property<decimal>("Price")
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("StockType")
+                        .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("TEXT");
