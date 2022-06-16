@@ -16,6 +16,16 @@ namespace Telluria.Utils.Crud.QueryFilters
     private static readonly char _separatorPattern = ';';
     private static readonly char _propertySeparatorPattern = '|';
     private static readonly char _inSeparatorPattern = '|';
+    private static readonly Dictionary<string, string> _possibleOperations = new(new[]
+    {
+      new KeyValuePair<string, string>("==", "Equal"),
+      new KeyValuePair<string, string>(">=", "GreaterThanOrEqual"),
+      new KeyValuePair<string, string>("<=", "LessThanOrEqual"),
+      new KeyValuePair<string, string>(">>", "GreaterThan"),
+      new KeyValuePair<string, string>("<<", "LessThan"),
+      new KeyValuePair<string, string>("%=", "Contains"),
+      new KeyValuePair<string, string>("%>", "In"),
+    });
 
     public static Expression<Func<T, bool>> Parse<T>(string strFilter)
       where T : class
@@ -35,52 +45,20 @@ namespace Telluria.Utils.Crud.QueryFilters
       {
         string[] _keyValue;
         const int KEY = 0;
-        const int VALUE = 2;
+        const int VALUE = 1;
 
         string _propertyName = "";
         string _propertyValue = "";
         string _method;
 
+        var operation = _possibleOperations.FirstOrDefault(t => filter.Contains(t.Key));
+
+        // operação não encontrada
+        if (operation.Key == null) continue;
+
         // verificando o tipo de operação e preenchendo as variáveis de acordo com a operação
-        if (filter.Contains("=="))
-        {
-          _keyValue = filter.Split(new char[] { '=', '=' });
-          _method = "Equal";
-        }
-        else if (filter.Contains(">="))
-        {
-          _keyValue = filter.Split(new char[] { '>', '=' });
-          _method = "GreaterThanOrEqual";
-        }
-        else if (filter.Contains("<="))
-        {
-          _keyValue = filter.Split(new char[] { '<', '=' });
-          _method = "LessThanOrEqual";
-        }
-        else if (filter.Contains(">>"))
-        {
-          _keyValue = filter.Split(new char[] { '>', '>' });
-          _method = "GreaterThan";
-        }
-        else if (filter.Contains("<<"))
-        {
-          _keyValue = filter.Split(new char[] { '<', '<' });
-          _method = "LessThan";
-        }
-        else if (filter.Contains("%="))
-        {
-          _keyValue = filter.Split(new char[] { '%', '=' });
-          _method = "Contains";
-        }
-        else if (filter.Contains("%>"))
-        {
-          _keyValue = filter.Split(new char[] { '%', '>' });
-          _method = "In";
-        }
-        else
-        {
-          continue;
-        }
+        _keyValue = filter.Split(operation.Key);
+        _method = operation.Value;
 
         // keyValue é um array onde a primeira posição representa o nome da propriedade
         // e a ultima posição representa o valor a ser filtrado na propriedade
