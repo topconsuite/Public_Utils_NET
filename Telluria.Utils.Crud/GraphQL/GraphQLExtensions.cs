@@ -9,7 +9,12 @@ namespace Telluria.Utils.Crud.GraphQL
     public static string[] GetIncludes<TSourceType>(this IResolveFieldContext<TSourceType> source)
     {
       var includes = new List<string>();
-      var result = source?.SubFields?["result"];
+      var key = "result";
+
+      if (source?.SubFields?.ContainsKey(key) != true)
+        return includes.ToArray();
+
+      var result = source?.SubFields?[key];
       var selections = result?.SelectionSet?.Selections;
 
       // Get the includes (If has any)

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using GraphQL;
 using GraphQL.Types;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,17 +21,25 @@ namespace Telluria.Utils.Crud.GraphQL
     where TRepository : IBaseCrudRepository<TEntity>
     where TCommandHandler : IBaseCrudCommandHandler<TEntity, TValidator, TRepository>
   {
+    private readonly string _entityName;
+
+    protected BaseEntityMutation()
+    {
+      _entityName = typeof(TEntity).Name;
+
+      Name = $"{_entityName}Mutations";
+      Description = $"Mutations for {_entityName}";
+    }
+
     protected void AddBaseMutationCreate<TGraphInputType>()
       where TGraphInputType : InputObjectGraphType<TEntity>
     {
-      var entityName = typeof(TEntity).Name;
-
       Field<CommandResultType<TEntity, TGraphType>>()
         .Name("Create")
-        .Argument<NonNullGraphType<TGraphInputType>>(entityName.ToCamelCase(), $"The {entityName} to create")
+        .Argument<NonNullGraphType<TGraphInputType>>(_entityName.ToCamelCase(), $"The {_entityName} to create")
         .ResolveAsync(async context =>
         {
-          var entity = context.GetArgument<TEntity>(entityName.ToCamelCase());
+          var entity = context.GetArgument<TEntity>(_entityName.ToCamelCase());
           var includes = context.GetIncludes();
           var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
           var command = new BaseCreateCommand<TEntity>(entity, includes);
@@ -46,18 +55,17 @@ namespace Telluria.Utils.Crud.GraphQL
     protected void AddBaseMutationUpdate<TGraphInputType>()
       where TGraphInputType : BaseUpdateInputType<TEntity>
     {
-      var entityName = typeof(TEntity).Name;
-
       Field<CommandResultType<TEntity, TGraphType>>()
         .Name("Update")
-        .Argument<NonNullGraphType<TGraphInputType>>(entityName.ToCamelCase(), $"The {entityName} to update")
+        .Argument<NonNullGraphType<TGraphInputType>>(_entityName.ToCamelCase(), $"The {_entityName} to update")
         .ResolveAsync(async context =>
         {
-          var entityDynamic = context.GetArgument<dynamic>(entityName.ToCamelCase());
+          var entityDynamic = context.GetArgument<Dictionary<string, object>>(_entityName.ToCamelCase());
           var includes = context.GetIncludes();
           var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
 
-          var getCommand = new BaseGetCommand(entityDynamic["id"]);
+          var id = new Guid(entityDynamic["id"].ToString());
+          var getCommand = new BaseGetCommand(id);
           var oldResponse = await handler.HandleAsync(getCommand);
           var entityDb = oldResponse.Result;
 
@@ -75,12 +83,10 @@ namespace Telluria.Utils.Crud.GraphQL
 
     protected void AddBaseMutationDelete()
     {
-      var entityName = typeof(TEntity).Name;
-
       Field<CommandResultType>()
         .Name("Delete")
-        .Argument<NonNullGraphType<TGraphType>>("id", $"The id of the {entityName} to delete")
-        .Argument<BooleanGraphType>("permanent", $"If true, the {entityName} will be permanently deleted").DefaultValue(false)
+        .Argument<NonNullGraphType<GuidGraphType>>("id", $"The id of the {_entityName} to delete")
+        .Argument<BooleanGraphType>("permanent", $"If true, the {_entityName} will be permanently deleted").DefaultValue(false)
         .ResolveAsync(async context =>
         {
           var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
