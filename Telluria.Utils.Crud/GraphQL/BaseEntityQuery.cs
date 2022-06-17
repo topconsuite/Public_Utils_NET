@@ -21,13 +21,21 @@ namespace Telluria.Utils.Crud.GraphQL
     where TRepository : IBaseCrudRepository<TEntity>
     where TCommandHandler : IBaseCrudCommandHandler<TEntity, TValidator, TRepository>
   {
+    private readonly string _entityName;
+
+    protected BaseEntityQuery()
+    {
+      _entityName = typeof(TEntity).Name;
+
+      Name = $"{_entityName}Queries";
+      Description = $"Queries for {_entityName}";
+    }
+
     protected void AddBaseQueryGetById()
     {
-      var entityName = typeof(TEntity).Name;
-
       Field<CommandResultType<TEntity, TGraphType>>()
         .Name("GetByID")
-        .Argument<NonNullGraphType<GuidGraphType>>("id", $"The id of {entityName}")
+        .Argument<NonNullGraphType<GuidGraphType>>("id", $"The id of {_entityName}")
         .ResolveAsync(async context =>
         {
           var includes = context.GetIncludes();
