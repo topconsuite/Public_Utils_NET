@@ -42,7 +42,7 @@ Sonarqube analyze:
     - "dotnet tool install --global dotnet-sonarscanner"
     - 'export PATH="$PATH:$HOME/.dotnet/tools"'
     - "cd Telluria.Utils.Crud"
-    - 'dotnet sonarscanner begin /k:"Telluria-Utils-.NET-CRUD-" /v:"1.19.15" /d:sonar.login="$SONAR_TOKEN" /d:"sonar.host.url=$SONAR_HOST_URL" '
+    - 'dotnet sonarscanner begin /k:"Telluria-Utils-.NET-CRUD-" /v:"1.20.15" /d:sonar.login="$SONAR_TOKEN" /d:"sonar.host.url=$SONAR_HOST_URL" '
     - "dotnet build"
     - 'dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN"'
   allow_failure: true
