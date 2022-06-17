@@ -9,22 +9,19 @@ namespace Telluria.Utils.Crud.Repositories
 {
   public static class RepositoryExtensionMethods
   {
-    public static IQueryable<T> Tracking<T>(this IQueryable<T> source, bool tracking)
-      where T : BaseEntity
+    public static IQueryable<TEntity> Tracking<TEntity>(this IQueryable<TEntity> source, bool tracking)
+      where TEntity : BaseEntity
     {
-      if (tracking)
-        return source;
-      else
-        return source.AsNoTracking();
+      return tracking ? source : source.AsNoTracking();
     }
 
-    public static async Task<PagedList<T>> PagedList<T>(this IQueryable<T> source, uint page, uint perPage, bool tracking = false)
-      where T : BaseEntity
+    public static async Task<PagedList<TEntity>> PagedList<TEntity>(this IQueryable<TEntity> source, uint page, uint perPage, bool tracking = false)
+      where TEntity : BaseEntity
     {
-      uint _maxPageSize = 200;
+      uint maxPageSize = 200;
 
       if (page < 1) page = 1;
-      if (perPage < 1 || perPage > _maxPageSize) perPage = _maxPageSize;
+      if (perPage < 1 || perPage > maxPageSize) perPage = maxPageSize;
 
       var count = (uint)source.Count();
 
@@ -36,7 +33,7 @@ namespace Telluria.Utils.Crud.Repositories
 
       var records = await source.Tracking(tracking).Skip((int)skip).Take((int)perPage).ToListAsync();
 
-      var result = new PagedList<T>
+      var result = new PagedList<TEntity>
       {
         Page = page,
         PerPage = perPage,
@@ -46,6 +43,24 @@ namespace Telluria.Utils.Crud.Repositories
       };
 
       return result;
+    }
+
+    public static async Task AddRangeAsync<TEntity>(this DbSet<TEntity> source, params TEntity[] entities)
+      where TEntity : BaseEntity
+    {
+      await Task.Run(() => source.AddRange(entities));
+    }
+
+    public static async Task UpdateRangeAsync<TEntity>(this DbSet<TEntity> source, params TEntity[] entities)
+      where TEntity : BaseEntity
+    {
+      await Task.Run(() => source.UpdateRange(entities));
+    }
+
+    public static async Task RemoveRangeAsync<TEntity>(this DbSet<TEntity> source, params TEntity[] entities)
+      where TEntity : BaseEntity
+    {
+      await Task.Run(() => source.RemoveRange(entities));
     }
   }
 }

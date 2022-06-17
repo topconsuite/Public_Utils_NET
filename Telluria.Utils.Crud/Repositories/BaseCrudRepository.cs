@@ -31,6 +31,29 @@ namespace Telluria.Utils.Crud.Repositories
       return _context.Set<TSpecificEntity>();
     }
 
+    private async Task ValidateExistence<TSpecificEntity>(params TSpecificEntity[] entities)
+      where TSpecificEntity : BaseEntity
+    {
+      if (entities.Any(entity => entity.Id == Guid.Empty))
+        throw new Exception($"Id '{Guid.Empty}' not found");
+
+      var entitiesIds = entities.Select(x => x.Id);
+      var oldEntities = await ListAsync<TSpecificEntity>(false, x => entitiesIds.Contains(x.Id));
+
+      foreach (var entity in entities)
+      {
+        var oldEntity = oldEntities.FirstOrDefault(x => x.Id == entity.Id);
+
+        if (oldEntity == null)
+          throw new Exception($"Id '{entity.Id}' not found");
+
+        entity.CreatedAt = oldEntity.CreatedAt;
+        entity.UpdatedAt = oldEntity.UpdatedAt;
+        entity.DeletedAt = oldEntity.DeletedAt;
+        entity.Deleted = oldEntity.Deleted;
+      }
+    }
+
     public virtual async Task AddAsync(params TEntity[] entities)
     {
       await AddAsync<TEntity>(entities);
@@ -41,14 +64,15 @@ namespace Telluria.Utils.Crud.Repositories
     {
       var now = DateTime.Now.ToUniversalTime();
 
-      var taskList = entities.Select(entity => Task.Run(() =>
+      foreach (var entity in entities)
       {
         entity.CreatedAt = now;
-      }));
+        entity.UpdatedAt = null;
+        entity.DeletedAt = null;
+        entity.Deleted = false;
+      }
 
-      await Task.WhenAll(taskList);
-
-      await Task.Run(() => DbSet<TSpecificEntity>().AddRange(entities));
+      await DbSet<TSpecificEntity>().AddRangeAsync(entities);
     }
 
     public virtual async Task<TEntity> GetAsync(
@@ -83,24 +107,15 @@ namespace Telluria.Utils.Crud.Repositories
     public virtual async Task UpdateAsync<TSpecificEntity>(params TSpecificEntity[] entities)
       where TSpecificEntity : BaseEntity
     {
-      var entitiesIds = entities.Select(x => x.Id);
-      var oldEntities = await ListAsync<TSpecificEntity>(false, x => entitiesIds.Contains(x.Id));
+      await ValidateExistence(entities);
       var now = DateTime.Now.ToUniversalTime();
 
       foreach (var entity in entities)
       {
-        if (entity.Id == Guid.Empty)
-          throw new Exception($"Id '{entity.Id}' not found");
-
-        var oldEntity = oldEntities.FirstOrDefault(x => x.Id == entity.Id);
-
-        if (oldEntity == null)
-          throw new Exception($"Id '{entity.Id}' not found");
-
         entity.UpdatedAt = now;
       }
 
-      await Task.Run(() => DbSet<TSpecificEntity>().UpdateRange(entities));
+      await DbSet<TSpecificEntity>().UpdateRangeAsync(entities);
     }
 
     public virtual async Task UpsertAsync(
@@ -121,7 +136,7 @@ namespace Telluria.Utils.Crud.Repositories
 
       entity.CreatedAt = now;
 
-      await Task.Run(() => DbSet<TEntity>().Upsert(entity).On(match).WhenMatched(updater).RunAsync());
+      await DbSet<TEntity>().Upsert(entity).On(match).WhenMatched(updater).RunAsync();
     }
 
     public virtual async Task SoftDeleteAsync(params TEntity[] entities)
@@ -132,20 +147,11 @@ namespace Telluria.Utils.Crud.Repositories
     public virtual async Task SoftDeleteAsync<TSpecificEntity>(params TSpecificEntity[] entities)
       where TSpecificEntity : BaseEntity
     {
-      var entitiesIds = entities.Select(x => x.Id);
-      var oldEntities = await ListAsync<TSpecificEntity>(false, x => entitiesIds.Contains(x.Id));
+      await ValidateExistence(entities);
       var now = DateTime.Now.ToUniversalTime();
 
       foreach (var entity in entities)
       {
-        if (entity.Id == Guid.Empty)
-          throw new Exception($"Id '{entity.Id}' not found");
-
-        var oldEntity = oldEntities.FirstOrDefault(x => x.Id == entity.Id);
-
-        if (oldEntity == null)
-          throw new Exception($"Id '{entity.Id}' not found");
-
         entity.DeletedAt = now;
         entity.Deleted = true;
       }
@@ -153,11 +159,11 @@ namespace Telluria.Utils.Crud.Repositories
       // Verify if have foreign key conflicts to continue or not with soft delete
       using (var scope = new TransactionScope(TransactionScopeOption.RequiresNew, TransactionScopeAsyncFlowOption.Enabled))
       {
-        await Task.Run(() => DbSet<TSpecificEntity>().RemoveRange(entities));
+        await DbSet<TSpecificEntity>().RemoveRangeAsync(entities);
         await Commit();
       }
 
-      await Task.Run(() => DbSet<TSpecificEntity>().UpdateRange(entities));
+      await DbSet<TSpecificEntity>().UpdateRangeAsync(entities);
     }
 
     public virtual async Task RemoveAsync(params TEntity[] entities)
@@ -168,7 +174,7 @@ namespace Telluria.Utils.Crud.Repositories
     public virtual async Task RemoveAsync<TSpecificEntity>(params TSpecificEntity[] entities)
       where TSpecificEntity : BaseEntity
     {
-      await Task.Run(() => DbSet<TSpecificEntity>().RemoveRange(entities));
+      await DbSet<TSpecificEntity>().RemoveRangeAsync(entities);
     }
 
     public virtual async Task<TEntity> FindAsync(
