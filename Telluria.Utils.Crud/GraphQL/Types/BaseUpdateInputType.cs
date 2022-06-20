@@ -10,6 +10,10 @@ namespace Telluria.Utils.Crud.GraphQL.Types
     public BaseUpdateInputType()
     {
       var entityName = typeof(TEntity).Name;
+
+      Name = $"{entityName}UpdateInputType";
+      Description = $"{entityName} Update Input";
+
       Field(x => x.Id, nullable: false).Description($"The id of the {entityName}");
     }
 
