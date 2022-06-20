@@ -1,7 +1,7 @@
 {
   "name": "telluria-utils-net",
   "description": "Utilities for working with .NET languages",
-  "version": "1.20.15",
+  "version": "1.21.15",
   "license": "MIT",
   "author": "Telluria Tecnologia",
   "repository": {
