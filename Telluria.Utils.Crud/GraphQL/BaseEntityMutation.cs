@@ -32,7 +32,7 @@ namespace Telluria.Utils.Crud.GraphQL
     }
 
     protected void AddBaseMutationCreate<TGraphInputType>()
-      where TGraphInputType : InputObjectGraphType<TEntity>
+      where TGraphInputType : BaseCreateInputType<TEntity>
     {
       Field<CommandResultType<TEntity, TGraphType>>()
         .Name("Create")

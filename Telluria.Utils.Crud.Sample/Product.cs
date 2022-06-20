@@ -126,7 +126,7 @@ namespace Telluria.Utils.Crud.Sample
     }
   }
 
-  public class ProductCreateInputType : InputObjectGraphType<Product>
+  public class ProductCreateInputType : BaseCreateInputType<Product>
   {
     public ProductCreateInputType()
     {
