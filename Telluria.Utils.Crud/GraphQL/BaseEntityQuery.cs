@@ -40,7 +40,8 @@ namespace Telluria.Utils.Crud.GraphQL
         {
           var includes = context.GetIncludes();
           var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
-          var command = new BaseGetCommand(context.GetArgument<Guid>("id"), includes);
+          var cancellationToken = context.CancellationToken;
+          var command = new BaseGetCommand(context.GetArgument<Guid>("id"), includes, cancellationToken);
           var response = await handler.HandleAsync(command);
 
           if (response.Status == ECommandResultStatus.SUCCESS)
@@ -64,13 +65,14 @@ namespace Telluria.Utils.Crud.GraphQL
           var perPage = context.GetArgument<uint>("perPage");
           var includes = context.GetIncludes();
           var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
+          var cancellationToken = context.CancellationToken;
 
           var where = context.GetArgument<List<WhereClauses>>("where");
           var whereClauses = ParserWhereClauses.Parse<TEntity>(where ?? new List<WhereClauses>());
 
           var response = context.GetArgument<bool>("includeDeleted")
-            ? await handler.HandleAsync(new BaseListAllCommand<TEntity>(page, perPage, whereClauses, includes))
-            : await handler.HandleAsync(new BaseListCommand<TEntity>(page, perPage, whereClauses, includes));
+            ? await handler.HandleAsync(new BaseListAllCommand<TEntity>(page, perPage, whereClauses, includes, cancellationToken))
+            : await handler.HandleAsync(new BaseListCommand<TEntity>(page, perPage, whereClauses, includes, cancellationToken));
 
           if (response.Status == ECommandResultStatus.SUCCESS)
             return response;
