@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
@@ -31,14 +32,14 @@ namespace Telluria.Utils.Crud.Repositories
       return _context.Set<TSpecificEntity>();
     }
 
-    private async Task ValidateExistence<TSpecificEntity>(params TSpecificEntity[] entities)
+    private async Task ValidateExistence<TSpecificEntity>(IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
       where TSpecificEntity : BaseEntity
     {
       if (entities.Any(entity => entity.Id == Guid.Empty))
         throw new Exception($"Id '{Guid.Empty}' not found");
 
       var entitiesIds = entities.Select(x => x.Id);
-      var oldEntities = await ListAsync<TSpecificEntity>(false, x => entitiesIds.Contains(x.Id));
+      var oldEntities = await ListAsync<TSpecificEntity>(false, x => entitiesIds.Contains(x.Id), null, cancellationToken);
 
       foreach (var entity in entities)
       {
@@ -54,12 +55,17 @@ namespace Telluria.Utils.Crud.Repositories
       }
     }
 
-    public virtual async Task AddAsync(params TEntity[] entities)
+    public virtual async Task AddAsync(TEntity entity, CancellationToken cancellationToken)
     {
-      await AddAsync<TEntity>(entities);
+      await AddAsync<TEntity>(new[] { entity }, cancellationToken);
     }
 
-    public virtual async Task AddAsync<TSpecificEntity>(params TSpecificEntity[] entities)
+    public virtual async Task AddAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken)
+    {
+      await AddAsync<TEntity>(entities, cancellationToken);
+    }
+
+    public virtual async Task AddAsync<TSpecificEntity>(IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
       where TSpecificEntity : BaseEntity
     {
       var now = DateTime.Now.ToUniversalTime();
@@ -72,42 +78,48 @@ namespace Telluria.Utils.Crud.Repositories
         entity.Deleted = false;
       }
 
-      await DbSet<TSpecificEntity>().AddRangeAsync(entities);
+      await DbSet<TSpecificEntity>().AddRangeAsync(entities, cancellationToken);
     }
 
     public virtual async Task<TEntity> GetAsync(
       Guid id,
-      bool tracking = false,
-      params string[] includeProperties)
+      bool tracking,
+      IEnumerable<string> includeProperties,
+      CancellationToken cancellationToken)
     {
-      return await GetAsync<TEntity>(id, tracking, includeProperties);
+      return await GetAsync<TEntity>(id, tracking, includeProperties, cancellationToken);
     }
 
     public virtual async Task<TSpecificEntity> GetAsync<TSpecificEntity>(
       Guid id,
-      bool tracking = false,
-      params string[] includeProperties)
+      bool tracking,
+      IEnumerable<string> includeProperties,
+      CancellationToken cancellationToken)
       where TSpecificEntity : BaseEntity
     {
       var set = DbSet<TSpecificEntity>().AsQueryable();
 
-      foreach (var includePropertie in includeProperties)
-        set = set.Include(includePropertie);
+      set = set.AddIncludes(includeProperties);
 
       set = set.Where(t => t.Id == id);
 
-      return await set.Tracking(tracking).FirstOrDefaultAsync();
+      return await set.Tracking(tracking).FirstOrDefaultAsync(cancellationToken);
     }
 
-    public virtual async Task UpdateAsync(params TEntity[] entities)
+    public virtual async Task UpdateAsync(TEntity entity, CancellationToken cancellationToken)
     {
-      await UpdateAsync<TEntity>(entities);
+      await UpdateAsync<TEntity>(new[] { entity }, cancellationToken);
     }
 
-    public virtual async Task UpdateAsync<TSpecificEntity>(params TSpecificEntity[] entities)
+    public virtual async Task UpdateAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken)
+    {
+      await UpdateAsync<TEntity>(entities, cancellationToken);
+    }
+
+    public virtual async Task UpdateAsync<TSpecificEntity>(IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
       where TSpecificEntity : BaseEntity
     {
-      await ValidateExistence(entities);
+      await ValidateExistence(entities, cancellationToken);
       var now = DateTime.Now.ToUniversalTime();
 
       foreach (var entity in entities)
@@ -115,39 +127,46 @@ namespace Telluria.Utils.Crud.Repositories
         entity.UpdatedAt = now;
       }
 
-      await DbSet<TSpecificEntity>().UpdateRangeAsync(entities);
+      await DbSet<TSpecificEntity>().UpdateRangeAsync(entities, cancellationToken);
     }
 
     public virtual async Task UpsertAsync(
       TEntity entity,
       Expression<Func<TEntity, object>> match,
-      Expression<Func<TEntity, TEntity, TEntity>> updater)
+      Expression<Func<TEntity, TEntity, TEntity>> updater,
+      CancellationToken cancellationToken)
     {
-      await UpsertAsync<TEntity>(entity, match, updater);
+      await UpsertAsync<TEntity>(entity, match, updater, cancellationToken);
     }
 
     public virtual async Task UpsertAsync<TSpecificEntity>(
       TEntity entity,
       Expression<Func<TEntity, object>> match,
-      Expression<Func<TEntity, TEntity, TEntity>> updater)
+      Expression<Func<TEntity, TEntity, TEntity>> updater,
+      CancellationToken cancellationToken)
       where TSpecificEntity : BaseEntity
     {
       var now = DateTime.Now.ToUniversalTime();
 
       entity.CreatedAt = now;
 
-      await DbSet<TEntity>().Upsert(entity).On(match).WhenMatched(updater).RunAsync();
+      await DbSet<TEntity>().Upsert(entity).On(match).WhenMatched(updater).RunAsync(cancellationToken);
     }
 
-    public virtual async Task SoftDeleteAsync(params TEntity[] entities)
+    public virtual async Task SoftDeleteAsync(TEntity entity, CancellationToken cancellationToken)
     {
-      await SoftDeleteAsync<TEntity>(entities);
+      await SoftDeleteAsync<TEntity>(new[] { entity }, cancellationToken);
     }
 
-    public virtual async Task SoftDeleteAsync<TSpecificEntity>(params TSpecificEntity[] entities)
+    public virtual async Task SoftDeleteAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken)
+    {
+      await SoftDeleteAsync<TEntity>(entities, cancellationToken);
+    }
+
+    public virtual async Task SoftDeleteAsync<TSpecificEntity>(IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
       where TSpecificEntity : BaseEntity
     {
-      await ValidateExistence(entities);
+      await ValidateExistence(entities, cancellationToken);
       var now = DateTime.Now.ToUniversalTime();
 
       foreach (var entity in entities)
@@ -159,164 +178,174 @@ namespace Telluria.Utils.Crud.Repositories
       // Verify if have foreign key conflicts to continue or not with soft delete
       using (var scope = new TransactionScope(TransactionScopeOption.RequiresNew, TransactionScopeAsyncFlowOption.Enabled))
       {
-        await DbSet<TSpecificEntity>().RemoveRangeAsync(entities);
-        await Commit();
+        await DbSet<TSpecificEntity>().RemoveRangeAsync(entities, cancellationToken);
+        await Commit(cancellationToken);
       }
 
-      await DbSet<TSpecificEntity>().UpdateRangeAsync(entities);
+      await DbSet<TSpecificEntity>().UpdateRangeAsync(entities, cancellationToken);
     }
 
-    public virtual async Task RemoveAsync(params TEntity[] entities)
+    public virtual async Task RemoveAsync(TEntity entity, CancellationToken cancellationToken)
     {
-      await RemoveAsync<TEntity>(entities);
+      await RemoveAsync<TEntity>(new[] { entity }, cancellationToken);
     }
 
-    public virtual async Task RemoveAsync<TSpecificEntity>(params TSpecificEntity[] entities)
+    public virtual async Task RemoveAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken)
+    {
+      await RemoveAsync<TEntity>(entities, cancellationToken);
+    }
+
+    public virtual async Task RemoveAsync<TSpecificEntity>(IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
       where TSpecificEntity : BaseEntity
     {
-      await DbSet<TSpecificEntity>().RemoveRangeAsync(entities);
+      await DbSet<TSpecificEntity>().RemoveRangeAsync(entities, cancellationToken);
     }
 
     public virtual async Task<TEntity> FindAsync(
-      bool tracking = false,
-      Expression<Func<TEntity, bool>> filter = null,
-      params string[] includeProperties)
+      bool tracking,
+      Expression<Func<TEntity, bool>> filter,
+      IEnumerable<string> includeProperties,
+      CancellationToken cancellationToken)
     {
-      return await FindAsync<TEntity>(tracking, filter, includeProperties);
+      return await FindAsync<TEntity>(tracking, filter, includeProperties, cancellationToken);
     }
 
     public virtual async Task<TSpecificEntity> FindAsync<TSpecificEntity>(
-      bool tracking = false,
-      Expression<Func<TSpecificEntity, bool>> filter = null,
-      params string[] includeProperties)
+      bool tracking,
+      Expression<Func<TSpecificEntity, bool>> filter,
+      IEnumerable<string> includeProperties,
+      CancellationToken cancellationToken)
       where TSpecificEntity : BaseEntity
     {
       var set = DbSet<TSpecificEntity>().AsQueryable();
 
-      foreach (var includePropertie in includeProperties)
-        set = set.Include(includePropertie);
+      set = set.AddIncludes(includeProperties);
 
       if (filter != null)
         set = set.Where(filter);
 
-      return await set.Tracking(tracking).FirstOrDefaultAsync();
+      return await set.Tracking(tracking).FirstOrDefaultAsync(cancellationToken);
     }
 
     public virtual async Task<PagedList<TEntity>> ListAsync(
       uint page,
       uint perPage,
-      bool tracking = false,
-      Expression<Func<TEntity, bool>> filter = null,
-      params string[] includeProperties)
+      bool tracking,
+      Expression<Func<TEntity, bool>> filter,
+      IEnumerable<string> includeProperties,
+      CancellationToken cancellationToken)
     {
-      return await ListAsync<TEntity>(page, perPage, tracking, filter, includeProperties);
+      return await ListAsync<TEntity>(page, perPage, tracking, filter, includeProperties, cancellationToken);
     }
 
     public virtual async Task<PagedList<TSpecificEntity>> ListAsync<TSpecificEntity>(
       uint page,
       uint perPage,
-      bool tracking = false,
-      Expression<Func<TSpecificEntity, bool>> filter = null,
-      params string[] includeProperties)
+      bool tracking,
+      Expression<Func<TSpecificEntity, bool>> filter,
+      IEnumerable<string> includeProperties,
+      CancellationToken cancellationToken)
       where TSpecificEntity : BaseEntity
     {
       var set = DbSet<TSpecificEntity>().AsQueryable();
 
-      foreach (var includePropertie in includeProperties)
-        set = set.Include(includePropertie);
+      set = set.AddIncludes(includeProperties);
 
       if (filter != null)
         set = set.Where(filter);
 
-      return await set.PagedList(page, perPage, tracking);
+      return await set.PagedList(page, perPage, tracking, cancellationToken);
     }
 
     public virtual async Task<IEnumerable<TEntity>> ListAsync(
-      bool tracking = false,
-      Expression<Func<TEntity, bool>> filter = null,
-      params string[] includeProperties)
+      bool tracking,
+      Expression<Func<TEntity, bool>> filter,
+      IEnumerable<string> includeProperties,
+      CancellationToken cancellationToken)
     {
-      return await ListAsync<TEntity>(tracking, filter, includeProperties);
+      return await ListAsync<TEntity>(tracking, filter, includeProperties, cancellationToken);
     }
 
     public virtual async Task<IEnumerable<TSpecificEntity>> ListAsync<TSpecificEntity>(
-      bool tracking = false,
-      Expression<Func<TSpecificEntity, bool>> filter = null,
-      params string[] includeProperties)
+      bool tracking,
+      Expression<Func<TSpecificEntity, bool>> filter,
+      IEnumerable<string> includeProperties,
+      CancellationToken cancellationToken)
       where TSpecificEntity : BaseEntity
     {
       var set = DbSet<TSpecificEntity>().AsQueryable();
 
-      foreach (var includePropertie in includeProperties)
-        set = set.Include(includePropertie);
+      set = set.AddIncludes(includeProperties);
 
       if (filter != null)
         set = set.Where(filter);
 
-      return await set.Tracking(tracking).ToListAsync();
+      return await set.Tracking(tracking).ToListAsync(cancellationToken);
     }
 
     public virtual async Task<PagedList<TEntity>> ListAllAsync(
       uint page,
       uint perPage,
-      bool tracking = false,
-      Expression<Func<TEntity, bool>> filter = null,
-      params string[] includeProperties)
+      bool tracking,
+      Expression<Func<TEntity, bool>> filter,
+      IEnumerable<string> includeProperties,
+      CancellationToken cancellationToken)
     {
-      return await ListAllAsync<TEntity>(page, perPage, tracking, filter, includeProperties);
+      return await ListAllAsync<TEntity>(page, perPage, tracking, filter, includeProperties, cancellationToken);
     }
 
     public virtual async Task<PagedList<TSpecificEntity>> ListAllAsync<TSpecificEntity>(
       uint page,
       uint perPage,
-      bool tracking = false,
-      Expression<Func<TSpecificEntity, bool>> filter = null,
-      params string[] includeProperties)
+      bool tracking,
+      Expression<Func<TSpecificEntity, bool>> filter,
+      IEnumerable<string> includeProperties,
+      CancellationToken cancellationToken)
         where TSpecificEntity : BaseEntity
     {
       var set = DbSet<TSpecificEntity>().AsQueryable();
 
-      foreach (var includePropertie in includeProperties)
-        set = set.Include(includePropertie);
+      set = set.AddIncludes(includeProperties);
 
       if (filter != null)
         set = set.Where(filter);
 
-      return await set.IgnoreQueryFilters().PagedList(page, perPage, tracking);
+      return await set.IgnoreQueryFilters().PagedList(page, perPage, tracking, cancellationToken);
     }
 
     public virtual async Task<IEnumerable<TEntity>> ListAllAsync(
-      bool tracking = false,
-      Expression<Func<TEntity, bool>> filter = null,
-      params string[] includeProperties)
+      bool tracking,
+      Expression<Func<TEntity, bool>> filter,
+      IEnumerable<string> includeProperties,
+      CancellationToken cancellationToken)
     {
-      return await ListAllAsync<TEntity>(tracking, filter, includeProperties);
+      return await ListAllAsync<TEntity>(tracking, filter, includeProperties, cancellationToken);
     }
 
     public virtual async Task<IEnumerable<TSpecificEntity>> ListAllAsync<TSpecificEntity>(
-      bool tracking = false,
-      Expression<Func<TSpecificEntity, bool>> filter = null,
-      params string[] includeProperties)
+      bool tracking,
+      Expression<Func<TSpecificEntity, bool>> filter,
+      IEnumerable<string> includeProperties,
+      CancellationToken cancellationToken)
       where TSpecificEntity : BaseEntity
     {
       var set = DbSet<TSpecificEntity>().AsQueryable();
 
-      foreach (var includePropertie in includeProperties)
-        set = set.Include(includePropertie);
+      set = set.AddIncludes(includeProperties);
 
       if (filter != null)
         set = set.Where(filter);
 
-      return await set.IgnoreQueryFilters().Tracking(tracking).ToListAsync();
+      return await set.IgnoreQueryFilters().Tracking(tracking).ToListAsync(cancellationToken);
     }
 
-    public async Task Commit()
+    public async Task Commit(CancellationToken cancellationToken)
     {
       Exception shouldThrow = null;
 
       try
       {
-        await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync(cancellationToken);
       }
       catch (Exception e)
       {

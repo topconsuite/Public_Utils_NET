@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Telluria.Utils.Crud.Entities;
@@ -15,7 +17,12 @@ namespace Telluria.Utils.Crud.Repositories
       return tracking ? source : source.AsNoTracking();
     }
 
-    public static async Task<PagedList<TEntity>> PagedList<TEntity>(this IQueryable<TEntity> source, uint page, uint perPage, bool tracking = false)
+    public static async Task<PagedList<TEntity>> PagedList<TEntity>(
+      this IQueryable<TEntity> source,
+      uint page,
+      uint perPage,
+      bool tracking,
+      CancellationToken cancellationToken)
       where TEntity : BaseEntity
     {
       uint maxPageSize = 200;
@@ -31,7 +38,7 @@ namespace Telluria.Utils.Crud.Repositories
 
       var skip = Math.Abs(page - 1) * perPage;
 
-      var records = await source.Tracking(tracking).Skip((int)skip).Take((int)perPage).ToListAsync();
+      var records = await source.Tracking(tracking).Skip((int)skip).Take((int)perPage).ToListAsync(cancellationToken);
 
       var result = new PagedList<TEntity>
       {
@@ -45,22 +52,33 @@ namespace Telluria.Utils.Crud.Repositories
       return result;
     }
 
-    public static async Task AddRangeAsync<TEntity>(this DbSet<TEntity> source, params TEntity[] entities)
+    public static IQueryable<TEntity> AddIncludes<TEntity>(this IQueryable<TEntity> source, IEnumerable<string> includeProperties)
       where TEntity : BaseEntity
     {
-      await Task.Run(() => source.AddRange(entities));
+      var includes = includeProperties ?? Array.Empty<string>();
+
+      foreach (var includePropertie in includes)
+        source = source.Include(includePropertie);
+
+      return source;
     }
 
-    public static async Task UpdateRangeAsync<TEntity>(this DbSet<TEntity> source, params TEntity[] entities)
+    public static async Task UpdateRangeAsync<TEntity>(
+      this DbSet<TEntity> source,
+      IEnumerable<TEntity> entities,
+      CancellationToken cancellationToken)
       where TEntity : BaseEntity
     {
-      await Task.Run(() => source.UpdateRange(entities));
+      await Task.Run(() => source.UpdateRange(entities), cancellationToken);
     }
 
-    public static async Task RemoveRangeAsync<TEntity>(this DbSet<TEntity> source, params TEntity[] entities)
+    public static async Task RemoveRangeAsync<TEntity>(
+      this DbSet<TEntity> source,
+      IEnumerable<TEntity> entities,
+      CancellationToken cancellationToken)
       where TEntity : BaseEntity
     {
-      await Task.Run(() => source.RemoveRange(entities));
+      await Task.Run(() => source.RemoveRange(entities), cancellationToken);
     }
   }
 }

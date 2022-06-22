@@ -42,7 +42,8 @@ namespace Telluria.Utils.Crud.GraphQL
           var entity = context.GetArgument<TEntity>(_entityName.ToCamelCase());
           var includes = context.GetIncludes();
           var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
-          var command = new BaseCreateCommand<TEntity>(entity, includes);
+          var cancellationToken = context.CancellationToken;
+          var command = new BaseCreateCommand<TEntity>(entity, includes, cancellationToken);
           var response = await handler.HandleAsync(command);
 
           if (response.Status == ECommandResultStatus.SUCCESS)
@@ -63,15 +64,16 @@ namespace Telluria.Utils.Crud.GraphQL
           var entityDynamic = context.GetArgument<Dictionary<string, object>>(_entityName.ToCamelCase());
           var includes = context.GetIncludes();
           var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
+          var cancellationToken = context.CancellationToken;
 
           var id = new Guid(entityDynamic["id"].ToString());
-          var getCommand = new BaseGetCommand(id);
+          var getCommand = new BaseGetCommand(id, null, cancellationToken);
           var oldResponse = await handler.HandleAsync(getCommand);
           var entityDb = oldResponse.Result;
 
           JsonConvert.PopulateObject(JsonConvert.SerializeObject(entityDynamic), entityDb);
 
-          var command = new BaseUpdateCommand<TEntity>(entityDb, includes);
+          var command = new BaseUpdateCommand<TEntity>(entityDb, includes, cancellationToken);
           var response = await handler.HandleAsync(command);
 
           if (response.Status == ECommandResultStatus.SUCCESS)
@@ -91,10 +93,11 @@ namespace Telluria.Utils.Crud.GraphQL
         {
           var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
           var id = context.GetArgument<Guid>("id");
+          var cancellationToken = context.CancellationToken;
 
           var response = context.GetArgument<bool>("permanent")
-            ? await handler.HandleAsync(new BaseRemoveCommand(id))
-            : await handler.HandleAsync(new BaseSoftDeleteCommand(id));
+            ? await handler.HandleAsync(new BaseRemoveCommand(id, cancellationToken))
+            : await handler.HandleAsync(new BaseSoftDeleteCommand(id, cancellationToken));
 
           if (response.Status == ECommandResultStatus.SUCCESS)
             return response;

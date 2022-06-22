@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Telluria.Utils.Crud.CommandResults;
@@ -23,9 +24,10 @@ namespace Telluria.Utils.Crud.Controllers
     [HttpGet]
     public virtual async Task<IActionResult> List(
       [FromServices] TCommandHandler handler,
-      [FromQuery] PagedRequestQuery<TEntity> query = null)
+      [FromQuery] PagedRequestQuery<TEntity> query = null,
+      CancellationToken cancellationToken = default)
     {
-      var command = new BaseListCommand<TEntity>(query.Page, query.PerPage, query.GetFilter(), query.GetIncludes());
+      var command = new BaseListCommand<TEntity>(query.Page, query.PerPage, query.GetFilter(), query.GetIncludes(), cancellationToken);
       var result = await handler.HandleAsync(command);
       return result.Status == ECommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
@@ -33,9 +35,10 @@ namespace Telluria.Utils.Crud.Controllers
     [HttpGet("all")]
     public virtual async Task<IActionResult> ListAll(
       [FromServices] TCommandHandler handler,
-      [FromQuery] PagedRequestQuery<TEntity> query = null)
+      [FromQuery] PagedRequestQuery<TEntity> query = null,
+      CancellationToken cancellationToken = default)
     {
-      var command = new BaseListAllCommand<TEntity>(query.Page, query.PerPage, query.GetFilter(), query.GetIncludes());
+      var command = new BaseListAllCommand<TEntity>(query.Page, query.PerPage, query.GetFilter(), query.GetIncludes(), cancellationToken);
       var result = await handler.HandleAsync(command);
       return result.Status == ECommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
@@ -43,9 +46,10 @@ namespace Telluria.Utils.Crud.Controllers
     [HttpGet("find")]
     public virtual async Task<IActionResult> Find(
       [FromServices] TCommandHandler handler,
-      [FromQuery] WhereRequestQuery<TEntity> query = null)
+      [FromQuery] WhereRequestQuery<TEntity> query = null,
+      CancellationToken cancellationToken = default)
     {
-      var command = new BaseFindCommand<TEntity>(query.GetFilter(), query.GetIncludes());
+      var command = new BaseFindCommand<TEntity>(query.GetFilter(), query.GetIncludes(), cancellationToken);
       var result = await handler.HandleAsync(command);
       if (result.Status == ECommandResultStatus.SUCCESS && result.Result == null) return NotFound(result);
       return result.Status == ECommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
@@ -53,11 +57,12 @@ namespace Telluria.Utils.Crud.Controllers
 
     [HttpGet("{id}")]
     public virtual async Task<IActionResult> Get(
-      Guid id,
+      [FromRoute] Guid id,
       [FromServices] TCommandHandler handler,
-      [FromQuery] IncludeRequestQuery query = null)
+      [FromQuery] IncludeRequestQuery query = null,
+      CancellationToken cancellationToken = default)
     {
-      var command = new BaseGetCommand(id, query.GetIncludes());
+      var command = new BaseGetCommand(id, query.GetIncludes(), cancellationToken);
       var result = await handler.HandleAsync(command);
       if (result.Status == ECommandResultStatus.SUCCESS && result.Result == null) return NotFound(result);
       return result.Status == ECommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
@@ -65,22 +70,24 @@ namespace Telluria.Utils.Crud.Controllers
 
     [HttpPost]
     public virtual async Task<IActionResult> Post(
-      [FromServices] TCommandHandler handler,
       [FromBody] TEntity entity,
-      [FromQuery] IncludeRequestQuery query = null)
+      [FromServices] TCommandHandler handler,
+      [FromQuery] IncludeRequestQuery query = null,
+      CancellationToken cancellationToken = default)
     {
-      var command = new BaseCreateCommand<TEntity>(entity, query.GetIncludes());
+      var command = new BaseCreateCommand<TEntity>(entity, query.GetIncludes(), cancellationToken);
       var result = await handler.HandleAsync(command);
       return result.Status == ECommandResultStatus.SUCCESS ? Created($"{this.Request.Path}/{entity.Id}", result) : BadRequest(result);
     }
 
     [HttpPost("many")]
     public virtual async Task<IActionResult> PostMany(
+      [FromBody] TEntity[] entities,
       [FromServices] TCommandHandler handler,
       [FromQuery] IncludeRequestQuery query = null,
-      [FromBody] params TEntity[] entities)
+      CancellationToken cancellationToken = default)
     {
-      var command = new BaseCreateManyCommand<TEntity>(entities, query.GetIncludes());
+      var command = new BaseCreateManyCommand<TEntity>(entities, query.GetIncludes(), cancellationToken);
       var result = await handler.HandleAsync(command);
       var urls = entities.Select(t => $"{Request.Path}/{t.Id}");
       return result.Status == ECommandResultStatus.SUCCESS ? Created(string.Join(", ", urls), result) : BadRequest(result);
@@ -88,25 +95,27 @@ namespace Telluria.Utils.Crud.Controllers
 
     [HttpPut("{id}")]
     public virtual async Task<IActionResult> Put(
-      Guid id,
-      [FromServices] TCommandHandler handler,
+      [FromRoute] Guid id,
       [FromBody] TEntity entity,
-      [FromQuery] IncludeRequestQuery query = null)
+      [FromServices] TCommandHandler handler,
+      [FromQuery] IncludeRequestQuery query = null,
+      CancellationToken cancellationToken = default)
     {
       entity.Id = id;
-      var command = new BaseUpdateCommand<TEntity>(entity, query.GetIncludes());
+      var command = new BaseUpdateCommand<TEntity>(entity, query.GetIncludes(), cancellationToken);
       var result = await handler.HandleAsync(command);
       return result.Status == ECommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
 
     [HttpPatch("{id}")]
     public virtual async Task<IActionResult> Patch(
-      Guid id,
-      [FromServices] TCommandHandler handler,
+      [FromRoute] Guid id,
       [FromBody] PatchBody<TEntity, TEntity> body,
-      [FromQuery] IncludeRequestQuery query = null)
+      [FromServices] TCommandHandler handler,
+      [FromQuery] IncludeRequestQuery query = null,
+      CancellationToken cancellationToken = default)
     {
-      var entity = await handler.HandleAsync(new BaseGetCommand(id));
+      var entity = await handler.HandleAsync(new BaseGetCommand(id, null, cancellationToken));
       if (entity.Status == ECommandResultStatus.SUCCESS && entity.Result == null) return NotFound(entity);
 
       try
@@ -119,22 +128,28 @@ namespace Telluria.Utils.Crud.Controllers
       }
 
       entity.Result.Id = id;
-      var command = new BaseUpdateCommand<TEntity>(entity.Result, query.GetIncludes());
+      var command = new BaseUpdateCommand<TEntity>(entity.Result, query.GetIncludes(), cancellationToken);
       var result = await handler.HandleAsync(command);
       return result.Status == ECommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
 
     [HttpDelete("{id}")]
-    public virtual async Task<IActionResult> SoftDelete(Guid id, [FromServices] TCommandHandler handler)
+    public virtual async Task<IActionResult> SoftDelete(
+      [FromRoute] Guid id,
+      [FromServices] TCommandHandler handler,
+      CancellationToken cancellationToken = default)
     {
-      var result = await handler.HandleAsync(new BaseSoftDeleteCommand(id));
+      var result = await handler.HandleAsync(new BaseSoftDeleteCommand(id, cancellationToken));
       return result.Status == ECommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
 
     [HttpDelete("{id}/permanently")]
-    public virtual async Task<IActionResult> Remove(Guid id, [FromServices] TCommandHandler handler)
+    public virtual async Task<IActionResult> Remove(
+      [FromRoute] Guid id,
+      [FromServices] TCommandHandler handler,
+      CancellationToken cancellationToken = default)
     {
-      var result = await handler.HandleAsync(new BaseRemoveCommand(id));
+      var result = await handler.HandleAsync(new BaseRemoveCommand(id, cancellationToken));
       return result.Status == ECommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
     }
   }

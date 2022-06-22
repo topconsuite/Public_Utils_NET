@@ -79,7 +79,7 @@ namespace Telluria.Utils.Crud.Handlers
     {
       try
       {
-        var result = await _repository.ListAsync(command.Page, command.PerPage, false, command.Where, command.Includes);
+        var result = await _repository.ListAsync(command.Page, command.PerPage, false, command.Where, command.Includes, command.CancellationToken);
 
         return new ListCommandResult<TEntity>(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.LIST), result);
       }
@@ -93,7 +93,7 @@ namespace Telluria.Utils.Crud.Handlers
     {
       try
       {
-        var result = await _repository.ListAllAsync(command.Page, command.PerPage, false, command.Where, command.Includes);
+        var result = await _repository.ListAllAsync(command.Page, command.PerPage, false, command.Where, command.Includes, command.CancellationToken);
 
         return new ListCommandResult<TEntity>(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.LIST_ALL), result);
       }
@@ -107,7 +107,7 @@ namespace Telluria.Utils.Crud.Handlers
     {
       try
       {
-        var result = await _repository.GetAsync(command.Id, false, command.Includes);
+        var result = await _repository.GetAsync(command.Id, false, command.Includes, command.CancellationToken);
         var message = result != null ? GetSuccessMessage(EBaseCrudCommands.GET) : $"Id '{command.Id}' not found";
 
         return new CommandResult<TEntity>(ECommandResultStatus.SUCCESS, message, result);
@@ -135,10 +135,10 @@ namespace Telluria.Utils.Crud.Handlers
           );
         }
 
-        await _repository.AddAsync(command.Data);
-        await _repository.Commit();
+        await _repository.AddAsync(command.Data, command.CancellationToken);
+        await _repository.Commit(command.CancellationToken);
 
-        var result = await _repository.GetAsync(command.Data.Id, false, command.Includes);
+        var result = await _repository.GetAsync(command.Data.Id, false, command.Includes, command.CancellationToken);
 
         return new CommandResult<TEntity>(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.CREATE), result);
       }
@@ -165,11 +165,11 @@ namespace Telluria.Utils.Crud.Handlers
           );
         }
 
-        await _repository.AddAsync(command.Data);
-        await _repository.Commit();
+        await _repository.AddAsync(command.Data, command.CancellationToken);
+        await _repository.Commit(command.CancellationToken);
 
         var createdIds = command.Data.Select(t => t.Id);
-        var result = await _repository.ListAsync(false, t => createdIds.Contains(t.Id), command.Includes);
+        var result = await _repository.ListAsync(false, t => createdIds.Contains(t.Id), command.Includes, command.CancellationToken);
 
         return new CommandResult<IEnumerable<TEntity>>(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.CREATE_MANY), result);
       }
@@ -196,10 +196,10 @@ namespace Telluria.Utils.Crud.Handlers
           );
         }
 
-        await _repository.UpdateAsync(command.Data);
-        await _repository.Commit();
+        await _repository.UpdateAsync(command.Data, command.CancellationToken);
+        await _repository.Commit(command.CancellationToken);
 
-        var result = await _repository.GetAsync(command.Data.Id, false, command.Includes);
+        var result = await _repository.GetAsync(command.Data.Id, false, command.Includes, command.CancellationToken);
 
         return new CommandResult<TEntity>(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.UPDATE), result);
       }
@@ -213,7 +213,7 @@ namespace Telluria.Utils.Crud.Handlers
     {
       try
       {
-        var entity = await _repository.GetAsync(command.Id);
+        var entity = await _repository.GetAsync(command.Id, false, null, command.CancellationToken);
 
         if (entity == null)
         {
@@ -226,8 +226,8 @@ namespace Telluria.Utils.Crud.Handlers
           );
         }
 
-        await _repository.SoftDeleteAsync(entity);
-        await _repository.Commit();
+        await _repository.SoftDeleteAsync(entity, command.CancellationToken);
+        await _repository.Commit(command.CancellationToken);
 
         return new CommandResult(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.SOFT_DELETE));
       }
@@ -241,7 +241,7 @@ namespace Telluria.Utils.Crud.Handlers
     {
       try
       {
-        var entity = await _repository.GetAsync(command.Id);
+        var entity = await _repository.GetAsync(command.Id, false, null, command.CancellationToken);
 
         if (entity == null)
         {
@@ -254,8 +254,8 @@ namespace Telluria.Utils.Crud.Handlers
           );
         }
 
-        await _repository.RemoveAsync(entity);
-        await _repository.Commit();
+        await _repository.RemoveAsync(entity, command.CancellationToken);
+        await _repository.Commit(command.CancellationToken);
 
         return new CommandResult(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.REMOVE));
       }
@@ -269,7 +269,7 @@ namespace Telluria.Utils.Crud.Handlers
     {
       try
       {
-        var result = await _repository.FindAsync(false, command.Where, command.Includes);
+        var result = await _repository.FindAsync(false, command.Where, command.Includes, command.CancellationToken);
         var message = result != null ? GetSuccessMessage(EBaseCrudCommands.FIND) : "Not found";
 
         return new CommandResult<TEntity>(ECommandResultStatus.SUCCESS, message, result);
