@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
+using FluentValidation.Results;
 using Telluria.Utils.Crud.CommandResults;
 using Telluria.Utils.Crud.Commands.BaseCommands;
 using Telluria.Utils.Crud.Entities;
@@ -41,14 +42,22 @@ namespace Telluria.Utils.Crud.Handlers
 
     protected ICommandResult GetDefaultError(Exception exception)
     {
-      var result = new CommandResult(
+      return new CommandResult(
         ECommandResultStatus.ERROR,
         EServerErrorExtensions.GetErrorMessage(EServerError.INTERNAL_SERVER_ERROR) + " Exception: " + exception.Message,
         EServerError.INTERNAL_SERVER_ERROR.ToString(),
         null
       );
+    }
 
-      return result;
+    protected ICommandResult GetDefaultValidationError(ValidationResult validationResult)
+    {
+      return new CommandResult(
+        ECommandResultStatus.ALERT,
+        EClientErrorExtensions.GetErrorMessage(EClientError.BAD_REQUEST),
+        EClientError.BAD_REQUEST.ToString(),
+        validationResult.Errors
+      );
     }
 
     protected string GetDefaultSuccessMessage(EBaseCrudCommands command)
@@ -122,18 +131,11 @@ namespace Telluria.Utils.Crud.Handlers
     {
       try
       {
-        var validationResult = Validator.Validate<TValidator, TEntity>(command.Data, BaseEntityValidations.CREATE);
+        var validationResult = await Validator.ValidateAsync<TValidator, TEntity>(
+          command.Data, BaseEntityValidations.CREATE, command.CancellationToken);
 
         if (!validationResult.IsValid)
-        {
-          return new CommandResult<TEntity>(
-            ECommandResultStatus.ALERT,
-            EClientErrorExtensions.GetErrorMessage(EClientError.BAD_REQUEST),
-            null!,
-            EClientError.BAD_REQUEST.ToString(),
-            validationResult.Errors
-          );
-        }
+          return GetDefaultValidationError(validationResult).ToCommandResult<TEntity>();
 
         await _repository.AddAsync(command.Data, command.CancellationToken);
         await _repository.Commit(command.CancellationToken);
@@ -152,17 +154,14 @@ namespace Telluria.Utils.Crud.Handlers
     {
       try
       {
-        var validationResults = command.Data.Select(entity => Validator.Validate<TValidator, TEntity>(entity, BaseEntityValidations.CREATE));
+        var validationTasks = command.Data.Select(entity =>
+          Validator.ValidateAsync<TValidator, TEntity>(entity, BaseEntityValidations.CREATE, command.CancellationToken));
+        var validationResults = await Task.WhenAll(validationTasks);
 
         if (validationResults.Any(t => !t.IsValid))
         {
-          return new CommandResult<IEnumerable<TEntity>>(
-            ECommandResultStatus.ALERT,
-            EClientErrorExtensions.GetErrorMessage(EClientError.BAD_REQUEST),
-            null!,
-            EClientError.BAD_REQUEST.ToString(),
-            validationResults.FirstOrDefault(t => !t.IsValid).Errors
-          );
+          var validationResult = validationResults.FirstOrDefault(t => !t.IsValid);
+          return GetDefaultValidationError(validationResult).ToEnumerableCommandResult<TEntity>();
         }
 
         await _repository.AddAsync(command.Data, command.CancellationToken);
@@ -183,18 +182,11 @@ namespace Telluria.Utils.Crud.Handlers
     {
       try
       {
-        var validationResult = Validator.Validate<TValidator, TEntity>(command.Data, BaseEntityValidations.UPDATE);
+        var validationResult = await Validator.ValidateAsync<TValidator, TEntity>(
+          command.Data, BaseEntityValidations.UPDATE, command.CancellationToken);
 
         if (!validationResult.IsValid)
-        {
-          return new CommandResult<TEntity>(
-            ECommandResultStatus.ALERT,
-            EClientErrorExtensions.GetErrorMessage(EClientError.BAD_REQUEST),
-            null!,
-            EClientError.BAD_REQUEST.ToString(),
-            validationResult.Errors
-          );
-        }
+          return GetDefaultValidationError(validationResult).ToCommandResult<TEntity>();
 
         await _repository.UpdateAsync(command.Data, command.CancellationToken);
         await _repository.Commit(command.CancellationToken);
