@@ -72,12 +72,12 @@ namespace Telluria.Utils.Crud.CommandResults
       PagedList<TResult> pagedEntityList,
       string errorCode = null,
       IEnumerable<ValidationFailure> notifications = null)
-      : base(status, message, pagedEntityList.Records, errorCode, notifications)
+      : base(status, message, pagedEntityList?.Records, errorCode, notifications)
     {
-      Page = pagedEntityList.Page;
-      PerPage = pagedEntityList.PerPage;
-      PageCount = pagedEntityList.PageCount;
-      TotalCount = pagedEntityList.TotalCount;
+      Page = pagedEntityList?.Page ?? 0;
+      PerPage = pagedEntityList?.PerPage ?? 0;
+      PageCount = pagedEntityList?.PageCount ?? 0;
+      TotalCount = pagedEntityList?.TotalCount ?? 0;
     }
   }
 }
