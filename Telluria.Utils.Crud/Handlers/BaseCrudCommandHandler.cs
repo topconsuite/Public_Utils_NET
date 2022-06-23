@@ -60,6 +60,15 @@ namespace Telluria.Utils.Crud.Handlers
       );
     }
 
+    protected ICommandResult GetDefaultNotFoundError()
+    {
+      return new CommandResult(
+        ECommandResultStatus.ALERT,
+        EClientErrorExtensions.GetErrorMessage(EClientError.NOT_FOUND),
+        EClientError.NOT_FOUND.ToString()
+      );
+    }
+
     protected string GetDefaultSuccessMessage(EBaseCrudCommands command)
     {
       var commandName = command switch
@@ -117,9 +126,11 @@ namespace Telluria.Utils.Crud.Handlers
       try
       {
         var result = await _repository.GetAsync(command.Id, false, command.Includes, command.CancellationToken);
-        var message = result != null ? GetSuccessMessage(EBaseCrudCommands.GET) : $"Id '{command.Id}' not found";
 
-        return new CommandResult<TEntity>(ECommandResultStatus.SUCCESS, message, result);
+        if (result is null)
+          return GetDefaultNotFoundError().ToCommandResult<TEntity>();
+
+        return new CommandResult<TEntity>(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.GET), result);
       }
       catch (Exception e)
       {
@@ -207,16 +218,8 @@ namespace Telluria.Utils.Crud.Handlers
       {
         var entity = await _repository.GetAsync(command.Id, false, null, command.CancellationToken);
 
-        if (entity == null)
-        {
-          return new CommandResult<TEntity>(
-            ECommandResultStatus.ALERT,
-            EClientErrorExtensions.GetErrorMessage(EClientError.NOT_FOUND),
-            null!,
-            EClientError.NOT_FOUND.ToString(),
-            null
-          );
-        }
+        if (entity is null)
+          return GetDefaultNotFoundError();
 
         await _repository.SoftDeleteAsync(entity, command.CancellationToken);
         await _repository.Commit(command.CancellationToken);
@@ -235,16 +238,8 @@ namespace Telluria.Utils.Crud.Handlers
       {
         var entity = await _repository.GetAsync(command.Id, false, null, command.CancellationToken);
 
-        if (entity == null)
-        {
-          return new CommandResult<TEntity>(
-            ECommandResultStatus.ALERT,
-            EClientErrorExtensions.GetErrorMessage(EClientError.NOT_FOUND),
-            null!,
-            EClientError.NOT_FOUND.ToString(),
-            null
-          );
-        }
+        if (entity is null)
+          return GetDefaultNotFoundError();
 
         await _repository.RemoveAsync(entity, command.CancellationToken);
         await _repository.Commit(command.CancellationToken);
@@ -262,9 +257,11 @@ namespace Telluria.Utils.Crud.Handlers
       try
       {
         var result = await _repository.FindAsync(false, command.Where, command.Includes, command.CancellationToken);
-        var message = result != null ? GetSuccessMessage(EBaseCrudCommands.FIND) : "Not found";
 
-        return new CommandResult<TEntity>(ECommandResultStatus.SUCCESS, message, result);
+        if (result is null)
+          return GetDefaultNotFoundError().ToCommandResult<TEntity>();
+
+        return new CommandResult<TEntity>(ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.FIND), result);
       }
       catch (Exception e)
       {

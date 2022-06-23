@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Telluria.Utils.Crud.CommandResults;
 using Telluria.Utils.Crud.Commands.BaseCommands;
 using Telluria.Utils.Crud.Entities;
+using Telluria.Utils.Crud.Errors;
 using Telluria.Utils.Crud.Handlers;
 using Telluria.Utils.Crud.QueryFilters;
 using Telluria.Utils.Crud.Repositories;
@@ -21,6 +22,16 @@ namespace Telluria.Utils.Crud.Controllers
     where TRepository : IBaseCrudRepository<TEntity>
     where TCommandHandler : IBaseCrudCommandHandler<TEntity, TValidator, TRepository>
   {
+    protected bool IsNotFoundResult(ICommandResult result)
+    {
+      return result.Status != ECommandResultStatus.SUCCESS && result.ErrorCode == EClientError.NOT_FOUND.ToString();
+    }
+
+    protected bool IsFailedResult(ICommandResult result)
+    {
+      return result.Status != ECommandResultStatus.SUCCESS;
+    }
+
     [HttpGet]
     public virtual async Task<IActionResult> List(
       [FromServices] TCommandHandler handler,
@@ -29,7 +40,8 @@ namespace Telluria.Utils.Crud.Controllers
     {
       var command = new BaseListCommand<TEntity>(query.Page, query.PerPage, query.GetFilter(), query.GetIncludes(), cancellationToken);
       var result = await handler.HandleAsync(command);
-      return result.Status == ECommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
+      if (IsFailedResult(result)) return BadRequest(result);
+      return Ok(result);
     }
 
     [HttpGet("all")]
@@ -40,7 +52,8 @@ namespace Telluria.Utils.Crud.Controllers
     {
       var command = new BaseListAllCommand<TEntity>(query.Page, query.PerPage, query.GetFilter(), query.GetIncludes(), cancellationToken);
       var result = await handler.HandleAsync(command);
-      return result.Status == ECommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
+      if (IsFailedResult(result)) return BadRequest(result);
+      return Ok(result);
     }
 
     [HttpGet("find")]
@@ -51,8 +64,9 @@ namespace Telluria.Utils.Crud.Controllers
     {
       var command = new BaseFindCommand<TEntity>(query.GetFilter(), query.GetIncludes(), cancellationToken);
       var result = await handler.HandleAsync(command);
-      if (result.Status == ECommandResultStatus.SUCCESS && result.Result == null) return NotFound(result);
-      return result.Status == ECommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
+      if (IsNotFoundResult(result)) return NotFound(result);
+      if (IsFailedResult(result)) return BadRequest(result);
+      return Ok(result);
     }
 
     [HttpGet("{id}")]
@@ -64,8 +78,9 @@ namespace Telluria.Utils.Crud.Controllers
     {
       var command = new BaseGetCommand(id, query.GetIncludes(), cancellationToken);
       var result = await handler.HandleAsync(command);
-      if (result.Status == ECommandResultStatus.SUCCESS && result.Result == null) return NotFound(result);
-      return result.Status == ECommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
+      if (IsNotFoundResult(result)) return NotFound(result);
+      if (IsFailedResult(result)) return BadRequest(result);
+      return Ok(result);
     }
 
     [HttpPost]
@@ -77,7 +92,8 @@ namespace Telluria.Utils.Crud.Controllers
     {
       var command = new BaseCreateCommand<TEntity>(entity, query.GetIncludes(), cancellationToken);
       var result = await handler.HandleAsync(command);
-      return result.Status == ECommandResultStatus.SUCCESS ? Created($"{this.Request.Path}/{entity.Id}", result) : BadRequest(result);
+      if (IsFailedResult(result)) return BadRequest(result);
+      return Created($"{this.Request.Path}/{entity.Id}", result);
     }
 
     [HttpPost("many")]
@@ -89,8 +105,9 @@ namespace Telluria.Utils.Crud.Controllers
     {
       var command = new BaseCreateManyCommand<TEntity>(entities, query.GetIncludes(), cancellationToken);
       var result = await handler.HandleAsync(command);
+      if (IsFailedResult(result)) return BadRequest(result);
       var urls = entities.Select(t => $"{Request.Path}/{t.Id}");
-      return result.Status == ECommandResultStatus.SUCCESS ? Created(string.Join(", ", urls), result) : BadRequest(result);
+      return Created(string.Join(", ", urls), result);
     }
 
     [HttpPut("{id}")]
@@ -104,7 +121,8 @@ namespace Telluria.Utils.Crud.Controllers
       entity.Id = id;
       var command = new BaseUpdateCommand<TEntity>(entity, query.GetIncludes(), cancellationToken);
       var result = await handler.HandleAsync(command);
-      return result.Status == ECommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
+      if (IsFailedResult(result)) return BadRequest(result);
+      return Ok(result);
     }
 
     [HttpPatch("{id}")]
@@ -116,7 +134,7 @@ namespace Telluria.Utils.Crud.Controllers
       CancellationToken cancellationToken = default)
     {
       var entity = await handler.HandleAsync(new BaseGetCommand(id, null, cancellationToken));
-      if (entity.Status == ECommandResultStatus.SUCCESS && entity.Result == null) return NotFound(entity);
+      if (IsNotFoundResult(entity)) return NotFound(entity);
 
       try
       {
@@ -130,7 +148,8 @@ namespace Telluria.Utils.Crud.Controllers
       entity.Result.Id = id;
       var command = new BaseUpdateCommand<TEntity>(entity.Result, query.GetIncludes(), cancellationToken);
       var result = await handler.HandleAsync(command);
-      return result.Status == ECommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
+      if (IsFailedResult(result)) return BadRequest(result);
+      return Ok(result);
     }
 
     [HttpDelete("{id}")]
@@ -140,7 +159,9 @@ namespace Telluria.Utils.Crud.Controllers
       CancellationToken cancellationToken = default)
     {
       var result = await handler.HandleAsync(new BaseSoftDeleteCommand(id, cancellationToken));
-      return result.Status == ECommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
+      if (IsNotFoundResult(result)) return NotFound(result);
+      if (IsFailedResult(result)) return BadRequest(result);
+      return Ok(result);
     }
 
     [HttpDelete("{id}/permanently")]
@@ -150,7 +171,9 @@ namespace Telluria.Utils.Crud.Controllers
       CancellationToken cancellationToken = default)
     {
       var result = await handler.HandleAsync(new BaseRemoveCommand(id, cancellationToken));
-      return result.Status == ECommandResultStatus.SUCCESS ? Ok(result) : BadRequest(result);
+      if (IsNotFoundResult(result)) return NotFound(result);
+      if (IsFailedResult(result)) return BadRequest(result);
+      return Ok(result);
     }
   }
 }
