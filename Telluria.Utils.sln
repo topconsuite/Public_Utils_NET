@@ -5,7 +5,9 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Telluria.Utils.Crud", "Telluria.Utils.Crud\Telluria.Utils.Crud.csproj", "{5C8A3198-D85F-47A7-93F0-F789B7C2747D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telluria.Utils.Crud.Sample", "Telluria.Utils.Crud.Sample\Telluria.Utils.Crud.Sample.csproj", "{1C9EC785-1AB7-4986-A7F6-E31AFFEF84B6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Telluria.Utils.Crud.Sample", "Telluria.Utils.Crud.Sample\Telluria.Utils.Crud.Sample.csproj", "{1C9EC785-1AB7-4986-A7F6-E31AFFEF84B6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Telluria.Utils.Crud.Tests", "Telluria.Utils.Crud.Tests\Telluria.Utils.Crud.Tests.csproj", "{4CC941EC-BF45-4B19-90EA-70B8B917510B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{1C9EC785-1AB7-4986-A7F6-E31AFFEF84B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1C9EC785-1AB7-4986-A7F6-E31AFFEF84B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1C9EC785-1AB7-4986-A7F6-E31AFFEF84B6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4CC941EC-BF45-4B19-90EA-70B8B917510B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4CC941EC-BF45-4B19-90EA-70B8B917510B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4CC941EC-BF45-4B19-90EA-70B8B917510B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4CC941EC-BF45-4B19-90EA-70B8B917510B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
