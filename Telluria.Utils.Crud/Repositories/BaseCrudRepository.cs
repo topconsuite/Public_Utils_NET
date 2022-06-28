@@ -57,7 +57,7 @@ namespace Telluria.Utils.Crud.Repositories
 
     public virtual async Task AddAsync(TEntity entity, CancellationToken cancellationToken)
     {
-      await AddAsync<TEntity>(new[] { entity }, cancellationToken);
+      await AddAsync(new[] { entity }, cancellationToken);
     }
 
     public virtual async Task AddAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken)
@@ -97,7 +97,7 @@ namespace Telluria.Utils.Crud.Repositories
       CancellationToken cancellationToken)
       where TSpecificEntity : BaseEntity
     {
-      var set = DbSet<TSpecificEntity>().AsQueryable();
+      IQueryable<TSpecificEntity> set = DbSet<TSpecificEntity>();
 
       set = set.AddIncludes(includeProperties);
 
@@ -108,7 +108,7 @@ namespace Telluria.Utils.Crud.Repositories
 
     public virtual async Task UpdateAsync(TEntity entity, CancellationToken cancellationToken)
     {
-      await UpdateAsync<TEntity>(new[] { entity }, cancellationToken);
+      await UpdateAsync(new[] { entity }, cancellationToken);
     }
 
     public virtual async Task UpdateAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken)
@@ -155,7 +155,7 @@ namespace Telluria.Utils.Crud.Repositories
 
     public virtual async Task SoftDeleteAsync(TEntity entity, CancellationToken cancellationToken)
     {
-      await SoftDeleteAsync<TEntity>(new[] { entity }, cancellationToken);
+      await SoftDeleteAsync(new[] { entity }, cancellationToken);
     }
 
     public virtual async Task SoftDeleteAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken)
@@ -187,7 +187,7 @@ namespace Telluria.Utils.Crud.Repositories
 
     public virtual async Task RemoveAsync(TEntity entity, CancellationToken cancellationToken)
     {
-      await RemoveAsync<TEntity>(new[] { entity }, cancellationToken);
+      await RemoveAsync(new[] { entity }, cancellationToken);
     }
 
     public virtual async Task RemoveAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken)
@@ -198,6 +198,7 @@ namespace Telluria.Utils.Crud.Repositories
     public virtual async Task RemoveAsync<TSpecificEntity>(IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
       where TSpecificEntity : BaseEntity
     {
+      await ValidateExistence(entities, cancellationToken);
       await DbSet<TSpecificEntity>().RemoveRangeAsync(entities, cancellationToken);
     }
 
@@ -217,7 +218,7 @@ namespace Telluria.Utils.Crud.Repositories
       CancellationToken cancellationToken)
       where TSpecificEntity : BaseEntity
     {
-      var set = DbSet<TSpecificEntity>().AsQueryable();
+      IQueryable<TSpecificEntity> set = DbSet<TSpecificEntity>();
 
       set = set.AddIncludes(includeProperties);
 
@@ -247,7 +248,7 @@ namespace Telluria.Utils.Crud.Repositories
       CancellationToken cancellationToken)
       where TSpecificEntity : BaseEntity
     {
-      var set = DbSet<TSpecificEntity>().AsQueryable();
+      IQueryable<TSpecificEntity> set = DbSet<TSpecificEntity>();
 
       set = set.AddIncludes(includeProperties);
 
@@ -273,7 +274,7 @@ namespace Telluria.Utils.Crud.Repositories
       CancellationToken cancellationToken)
       where TSpecificEntity : BaseEntity
     {
-      var set = DbSet<TSpecificEntity>().AsQueryable();
+      IQueryable<TSpecificEntity> set = DbSet<TSpecificEntity>();
 
       set = set.AddIncludes(includeProperties);
 
@@ -303,7 +304,7 @@ namespace Telluria.Utils.Crud.Repositories
       CancellationToken cancellationToken)
         where TSpecificEntity : BaseEntity
     {
-      var set = DbSet<TSpecificEntity>().AsQueryable();
+      IQueryable<TSpecificEntity> set = DbSet<TSpecificEntity>();
 
       set = set.AddIncludes(includeProperties);
 
@@ -329,7 +330,7 @@ namespace Telluria.Utils.Crud.Repositories
       CancellationToken cancellationToken)
       where TSpecificEntity : BaseEntity
     {
-      var set = DbSet<TSpecificEntity>().AsQueryable();
+      IQueryable<TSpecificEntity> set = DbSet<TSpecificEntity>();
 
       set = set.AddIncludes(includeProperties);
 
