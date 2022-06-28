@@ -1,5 +1,4 @@
 using FluentValidation;
-using GraphQL.Types;
 using Microsoft.EntityFrameworkCore;
 using Telluria.Utils.Crud.CommandResults;
 using Telluria.Utils.Crud.Controllers;
