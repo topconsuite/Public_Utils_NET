@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
@@ -357,11 +356,10 @@ public class RepositoryTests
   {
     // Arrange
     var errorMessage = "something is wrong";
-    var cancellationToken = default(CancellationToken);
-    _dbContextMock.Setup(x => x.SaveChangesAsync(cancellationToken)).ThrowsAsync(new Exception(errorMessage));
+    _dbContextMock.Setup(x => x.SaveChangesAsync(default)).ThrowsAsync(new Exception(errorMessage));
 
     // Act
-    var getResult = async () => await _sut.Commit(cancellationToken);
+    var getResult = async () => await _sut.Commit(default);
 
     // Assert
     await getResult.Should().ThrowAsync<Exception>().WithMessage(errorMessage);
