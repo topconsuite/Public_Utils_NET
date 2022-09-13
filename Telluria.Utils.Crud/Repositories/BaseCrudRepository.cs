@@ -73,7 +73,7 @@ namespace Telluria.Utils.Crud.Repositories
       foreach (var entity in entities)
       {
         entity.CreatedAt = now;
-        entity.UpdatedAt = null;
+        entity.UpdatedAt = now;
         entity.DeletedAt = null;
         entity.Deleted = false;
       }
@@ -149,6 +149,7 @@ namespace Telluria.Utils.Crud.Repositories
       var now = DateTime.Now.ToUniversalTime();
 
       entity.CreatedAt = now;
+      entity.UpdatedAt = now;
 
       await DbSet<TEntity>().Upsert(entity).On(match).WhenMatched(updater).RunAsync(cancellationToken);
     }
