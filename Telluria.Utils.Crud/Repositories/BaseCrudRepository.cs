@@ -1,386 +1,775 @@
+// ReSharper disable PossibleMultipleEnumeration
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query;
-using Microsoft.EntityFrameworkCore.Query.SqlExpressions;
+using Telluria.Utils.Crud.Constants.Enums;
 using Telluria.Utils.Crud.Entities;
+using Telluria.Utils.Crud.GraphQL.InputTypes;
+using Telluria.Utils.Crud.Helpers;
 using Telluria.Utils.Crud.Lists;
 
-namespace Telluria.Utils.Crud.Repositories
+namespace Telluria.Utils.Crud.Repositories;
+
+[SuppressMessage("StyleCop.CSharp.ReadabilityRules", "SA1124:Do not use regions", Justification = "More readable")]
+public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
+  where TEntity : BaseEntity
 {
-  public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
-    where TEntity : BaseEntity
+  private readonly DbContext _context;
+
+  protected BaseCrudRepository(DbContext context)
   {
-    [SuppressMessage("StyleCop.CSharp.MaintainabilityRules", "SA1401:Fields should be private", Justification = "<Pendente>")]
-    protected readonly DbContext _context;
+    _context = context;
+  }
 
-    protected BaseCrudRepository(DbContext context)
+  /// <summary>
+  ///   Commit changes to the database.
+  /// </summary>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <exception cref="Exception"> Thrown when an exception error condition occurs. </exception>
+  /// <returns> Integer of number of the state entries written to the database. </returns>
+  public async Task Commit(CancellationToken cancellationToken)
+  {
+    Exception shouldThrow = null;
+
+    try
     {
-      _context = context;
+      await _context.SaveChangesAsync(cancellationToken);
+    }
+    catch (Exception e)
+    {
+      await _context.DisposeAsync();
+      shouldThrow = e;
     }
 
-    protected DbSet<TSpecificEntity> DbSet<TSpecificEntity>()
-      where TSpecificEntity : BaseEntity
+    if (shouldThrow != null) throw shouldThrow;
+  }
+
+  /// <summary>
+  ///   Set the entity to be used in the database.
+  /// </summary>
+  /// <typeparam name="TSpecificEntity"> Type of the entity. </typeparam>
+  /// <returns> A set for the given entity type. </returns>
+  private DbSet<TSpecificEntity> DbSet<TSpecificEntity>()
+    where TSpecificEntity : BaseEntity
+  {
+    return _context.Set<TSpecificEntity>();
+  }
+
+  /// <summary>
+  ///   Validates if the entities exist in the database.
+  /// </summary>
+  /// <param name="entities"> The entities to be validated. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <typeparam name="TSpecificEntity"> Type of the entity. </typeparam>
+  /// <exception cref="Exception"> Thrown when an exception error condition occurs. (Custom not found exception). </exception>
+  private async Task ValidateExistence<TSpecificEntity>(
+    IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
+    where TSpecificEntity : BaseEntity
+  {
+    if (entities.Any(entity => entity.Id == Guid.Empty))
+      throw new Exception($"Id '{Guid.Empty}' not found");
+
+    var entitiesIds = entities.Select(x => x.Id);
+    var oldEntities = await ListAsync<TSpecificEntity>(false, x => entitiesIds.Contains(x.Id), null, cancellationToken);
+
+    foreach (var entity in entities)
     {
-      return _context.Set<TSpecificEntity>();
+      var oldEntity = oldEntities.FirstOrDefault(x => x.Id == entity.Id);
+
+      if (oldEntity == null)
+        throw new Exception($"Id '{entity.Id}' not found");
+
+      entity.CreatedAt = oldEntity.CreatedAt;
+      entity.UpdatedAt = oldEntity.UpdatedAt;
+      entity.DeletedAt = oldEntity.DeletedAt;
+      entity.Deleted = oldEntity.Deleted;
     }
+  }
 
-    private async Task ValidateExistence<TSpecificEntity>(IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
-      where TSpecificEntity : BaseEntity
+  #region CREATE (ADD)
+
+  /// <summary>
+  ///   TRANSFER
+  ///   Calls the function responsible for implementation to ensure correct required inheritance.
+  ///   PS: Just one entity.
+  /// </summary>
+  /// <param name="entity"> Entity. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <returns> The new entity. </returns>
+  public virtual async Task AddAsync(TEntity entity, CancellationToken cancellationToken)
+  {
+    await AddAsync<TEntity>(new[] { entity }, cancellationToken);
+  }
+
+  /// <summary>
+  ///   TRANSFER
+  ///   Calls the function responsible for implementation to ensure correct required inheritance.
+  ///   PS: Multiple entities.
+  /// </summary>
+  /// <param name="entities"> Entities. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <returns> The new entity. </returns>
+  public virtual async Task AddAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken)
+  {
+    await AddAsync<TEntity>(entities, cancellationToken);
+  }
+
+  /// <summary>
+  ///   Add entities to database.
+  /// </summary>
+  /// <param name="entities"> Entities. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <typeparam name="TSpecificEntity"> Type of entity. </typeparam>
+  /// <returns> The new entity. </returns>
+  public virtual async Task AddAsync<TSpecificEntity>(
+    IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
+    where TSpecificEntity : BaseEntity
+  {
+    var now = DateTime.Now.ToUniversalTime();
+
+    foreach (var entity in entities)
     {
-      if (entities.Any(entity => entity.Id == Guid.Empty))
-        throw new Exception($"Id '{Guid.Empty}' not found");
-
-      var entitiesIds = entities.Select(x => x.Id);
-      var oldEntities = await ListAsync<TSpecificEntity>(false, x => entitiesIds.Contains(x.Id), null, cancellationToken);
-
-      foreach (var entity in entities)
-      {
-        var oldEntity = oldEntities.FirstOrDefault(x => x.Id == entity.Id);
-
-        if (oldEntity == null)
-          throw new Exception($"Id '{entity.Id}' not found");
-
-        entity.CreatedAt = oldEntity.CreatedAt;
-        entity.UpdatedAt = oldEntity.UpdatedAt;
-        entity.DeletedAt = oldEntity.DeletedAt;
-        entity.Deleted = oldEntity.Deleted;
-      }
-    }
-
-    public virtual async Task AddAsync(TEntity entity, CancellationToken cancellationToken)
-    {
-      await AddAsync<TEntity>(new[] { entity }, cancellationToken);
-    }
-
-    public virtual async Task AddAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken)
-    {
-      await AddAsync<TEntity>(entities, cancellationToken);
-    }
-
-    public virtual async Task AddAsync<TSpecificEntity>(IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
-      where TSpecificEntity : BaseEntity
-    {
-      var now = DateTime.Now.ToUniversalTime();
-
-      foreach (var entity in entities)
-      {
-        entity.CreatedAt = now;
-        entity.UpdatedAt = now;
-        entity.DeletedAt = null;
-        entity.Deleted = false;
-      }
-
-      await DbSet<TSpecificEntity>().AddRangeAsync(entities, cancellationToken);
-    }
-
-    public virtual async Task<TEntity> GetAsync(
-      Guid id,
-      bool tracking,
-      IEnumerable<string> includeProperties,
-      CancellationToken cancellationToken)
-    {
-      return await GetAsync<TEntity>(id, tracking, includeProperties, cancellationToken);
-    }
-
-    public virtual async Task<TSpecificEntity> GetAsync<TSpecificEntity>(
-      Guid id,
-      bool tracking,
-      IEnumerable<string> includeProperties,
-      CancellationToken cancellationToken)
-      where TSpecificEntity : BaseEntity
-    {
-      var set = DbSet<TSpecificEntity>().AsQueryable();
-
-      set = set.AddIncludes(includeProperties);
-
-      set = set.Where(t => t.Id == id);
-
-      return await set.Tracking(tracking).FirstOrDefaultAsync(cancellationToken);
-    }
-
-    public virtual async Task UpdateAsync(TEntity entity, CancellationToken cancellationToken)
-    {
-      await UpdateAsync<TEntity>(new[] { entity }, cancellationToken);
-    }
-
-    public virtual async Task UpdateAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken)
-    {
-      await UpdateAsync<TEntity>(entities, cancellationToken);
-    }
-
-    public virtual async Task UpdateAsync<TSpecificEntity>(IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
-      where TSpecificEntity : BaseEntity
-    {
-      await ValidateExistence(entities, cancellationToken);
-      var now = DateTime.Now.ToUniversalTime();
-
-      foreach (var entity in entities)
-      {
-        entity.UpdatedAt = now;
-      }
-
-      await DbSet<TSpecificEntity>().UpdateRangeAsync(entities, cancellationToken);
-    }
-
-    public virtual async Task UpsertAsync(
-      TEntity entity,
-      Expression<Func<TEntity, object>> match,
-      Expression<Func<TEntity, TEntity, TEntity>> updater,
-      CancellationToken cancellationToken)
-    {
-      await UpsertAsync<TEntity>(entity, match, updater, cancellationToken);
-    }
-
-    public virtual async Task UpsertAsync<TSpecificEntity>(
-      TEntity entity,
-      Expression<Func<TEntity, object>> match,
-      Expression<Func<TEntity, TEntity, TEntity>> updater,
-      CancellationToken cancellationToken)
-      where TSpecificEntity : BaseEntity
-    {
-      var now = DateTime.Now.ToUniversalTime();
-
       entity.CreatedAt = now;
       entity.UpdatedAt = now;
-
-      await DbSet<TEntity>().Upsert(entity).On(match).WhenMatched(updater).RunAsync(cancellationToken);
+      entity.DeletedAt = null;
+      entity.Deleted = false;
     }
 
-    public virtual async Task SoftDeleteAsync(TEntity entity, CancellationToken cancellationToken)
+    await DbSet<TSpecificEntity>().AddRangeAsync(entities, cancellationToken);
+  }
+
+  #endregion
+  #region READ (GET BY ID)
+
+  /// <summary>
+  ///   TRANSFER
+  ///   Calls the function responsible for implementation to ensure correct required inheritance.
+  /// </summary>
+  /// <param name="id"> ID of entity. </param>
+  /// <param name="tracking"> Tracking or not. </param>
+  /// <param name="includeProperties"> Include properties. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <returns> The found entity. </returns>
+  public virtual async Task<TEntity> GetAsync(
+    Guid id, bool tracking, IEnumerable<string> includeProperties, CancellationToken cancellationToken)
+  {
+    return await GetAsync<TEntity>(id, tracking, includeProperties, cancellationToken);
+  }
+
+  /// <summary>
+  ///   Get entity by id
+  ///   Ignore soft deleted entities.
+  /// </summary>
+  /// <param name="id"> ID of entity. </param>
+  /// <param name="tracking"> Tracking or not. </param>
+  /// <param name="includeProperties"> Include properties. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <typeparam name="TSpecificEntity"> Type of entity. </typeparam>
+  /// <returns> The found entity. </returns>
+  public virtual async Task<TSpecificEntity> GetAsync<TSpecificEntity>(
+    Guid id, bool tracking, IEnumerable<string> includeProperties, CancellationToken cancellationToken)
+    where TSpecificEntity : BaseEntity
+  {
+    var set = DbSet<TSpecificEntity>().AsQueryable();
+
+    set = set.AddIncludes(includeProperties);
+    set = set.Where(t => t.Id == id);
+
+    return await set.Tracking(tracking).FirstOrDefaultAsync(cancellationToken);
+  }
+
+  #endregion
+  #region READ (GET BY FILTER - ONE REGISTER)
+
+  /// <summary>
+  ///   TRANSFER
+  ///   Calls the function responsible for implementation to ensure correct required inheritance.
+  /// </summary>
+  /// <param name="tracking"> Tracking or not. </param>
+  /// <param name="filter"> Filter expression. </param>
+  /// <param name="includeProperties"> Include properties. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <returns> The found entity. </returns>
+  public virtual async Task<TEntity> FindAsync(
+    bool tracking,
+    Expression<Func<TEntity, bool>> filter,
+    IEnumerable<string> includeProperties,
+    CancellationToken cancellationToken)
+  {
+    return await FindAsync<TEntity>(tracking, filter, includeProperties, cancellationToken);
+  }
+
+  /// <summary>
+  ///   Get entity by filter (without pagination).
+  ///   Ignore soft deleted entities.
+  ///   Only one entity.
+  /// </summary>
+  /// <param name="tracking"> Tracking or not. </param>
+  /// <param name="filter"> Filter expression. </param>
+  /// <param name="includeProperties"> Include properties. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <typeparam name="TSpecificEntity"> Specific entity. </typeparam>
+  /// <returns> The found entity. </returns>
+  public virtual async Task<TSpecificEntity> FindAsync<TSpecificEntity>(
+    bool tracking,
+    Expression<Func<TSpecificEntity, bool>> filter,
+    IEnumerable<string> includeProperties,
+    CancellationToken cancellationToken)
+    where TSpecificEntity : BaseEntity
+  {
+    var set = DbSet<TSpecificEntity>().AsQueryable();
+
+    set = set.AddIncludes(includeProperties);
+
+    if (filter != null)
+      set = set.Where(filter);
+
+    return await set.Tracking(tracking).FirstOrDefaultAsync(cancellationToken);
+  }
+
+  #endregion
+  #region READ (GET BY FILTER - MULTIPLE REGISTERS)
+
+  /// <summary>
+  ///   TRANSFER
+  ///   Calls the function responsible for implementation to ensure correct required inheritance.
+  /// </summary>
+  /// <param name="tracking"> Tracking or not. </param>
+  /// <param name="filter"> Filter expression. </param>
+  /// <param name="includeProperties"> Include properties. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <returns> The found entities. </returns>
+  public virtual async Task<IEnumerable<TEntity>> ListAsync(
+    bool tracking,
+    Expression<Func<TEntity, bool>> filter,
+    IEnumerable<string> includeProperties,
+    CancellationToken cancellationToken)
+  {
+    return await ListAsync<TEntity>(tracking, filter, includeProperties, cancellationToken);
+  }
+
+  /// <summary>
+  ///   Get entity by filter (without pagination).
+  ///   Ignore soft deleted entities.
+  ///   Multiple entities.
+  /// </summary>
+  /// <param name="tracking"> Tracking or not. </param>
+  /// <param name="filter"> Filter expression. </param>
+  /// <param name="includeProperties"> Include properties. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <typeparam name="TSpecificEntity"> Specific entity. </typeparam>
+  /// <returns> The found entities. </returns>
+  public virtual async Task<IEnumerable<TSpecificEntity>> ListAsync<TSpecificEntity>(
+    bool tracking,
+    Expression<Func<TSpecificEntity, bool>> filter,
+    IEnumerable<string> includeProperties,
+    CancellationToken cancellationToken)
+    where TSpecificEntity : BaseEntity
+  {
+    var set = DbSet<TSpecificEntity>().AsQueryable();
+
+    set = set.AddIncludes(includeProperties);
+
+    if (filter != null)
+      set = set.Where(filter);
+
+    return await set.Tracking(tracking).ToListAsync(cancellationToken);
+  }
+
+  #endregion
+  #region READ (WITH PAGINATION - EXCLUDE SOFT DELETED)
+
+  /// <summary>
+  ///   TRANSFER
+  ///   Calls the function responsible for implementation to ensure correct required inheritance.
+  /// </summary>
+  /// <param name="page"> Page number. </param>
+  /// <param name="perPage"> Number of items per page. </param>
+  /// <param name="tracking"> Tracking or not. </param>
+  /// <param name="filter"> Filter expression. </param>
+  /// <param name="includeProperties"> Include properties. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <returns> Paged list of entities. </returns>
+  public virtual async Task<PagedList<TEntity>> ListAsync(
+    uint page,
+    uint perPage,
+    bool tracking,
+    Expression<Func<TEntity, bool>> filter,
+    IEnumerable<string> includeProperties,
+    CancellationToken cancellationToken)
+  {
+    return await ListAsync<TEntity>(page, perPage, tracking, filter, includeProperties, cancellationToken);
+  }
+
+  /// <summary>
+  ///   Get a list of entities (with pagination).
+  ///   Ignore soft deleted entities.
+  /// </summary>
+  /// <param name="page"> Page number. </param>
+  /// <param name="perPage"> Number of items per page. </param>
+  /// <param name="tracking"> Tracking or not. </param>
+  /// <param name="filter"> Filter expression. </param>
+  /// <param name="includeProperties"> Include properties. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <typeparam name="TSpecificEntity"> Type of entity. </typeparam>
+  /// <returns> Paged list of entities. </returns>
+  public virtual async Task<PagedList<TSpecificEntity>> ListAsync<TSpecificEntity>(
+    uint page,
+    uint perPage,
+    bool tracking,
+    Expression<Func<TSpecificEntity, bool>> filter,
+    IEnumerable<string> includeProperties,
+    CancellationToken cancellationToken)
+    where TSpecificEntity : BaseEntity
+  {
+    var set = DbSet<TSpecificEntity>().AsQueryable();
+
+    set = set.AddIncludes(includeProperties);
+
+    if (filter != null)
+      set = set.Where(filter);
+
+    return await set.PagedList(page, perPage, tracking, cancellationToken);
+  }
+
+  #endregion
+  #region READ (WITH PAGINATION - INCLUDE SOFT DELETED)
+
+  /// <summary>
+  ///   TRANSFER
+  ///   Calls the function responsible for implementation to ensure correct required inheritance.
+  /// </summary>
+  /// <param name="page"> Page number. </param>
+  /// <param name="perPage"> Number of items per page. </param>
+  /// <param name="tracking"> Tracking or not. </param>
+  /// <param name="filter"> Filter expression. </param>
+  /// <param name="includeProperties"> Include properties. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <returns> Paged list of entities. </returns>
+  public virtual async Task<PagedList<TEntity>> ListAllAsync(
+    uint page,
+    uint perPage,
+    bool tracking,
+    Expression<Func<TEntity, bool>> filter,
+    IEnumerable<string> includeProperties,
+    CancellationToken cancellationToken)
+  {
+    return await ListAllAsync<TEntity>(page, perPage, tracking, filter, includeProperties, cancellationToken);
+  }
+
+  /// <summary>
+  ///   Get a list of entities (with pagination).
+  ///   Include soft deleted entities.
+  /// </summary>
+  /// <param name="page"> Page number. </param>
+  /// <param name="perPage"> Number of items per page. </param>
+  /// <param name="tracking"> Tracking or not. </param>
+  /// <param name="filter"> Filter expression. </param>
+  /// <param name="includeProperties"> Include properties. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <typeparam name="TSpecificEntity"> Type of entity. </typeparam>
+  /// <returns> Paged list of entities. </returns>
+  public virtual async Task<PagedList<TSpecificEntity>> ListAllAsync<TSpecificEntity>(
+    uint page,
+    uint perPage,
+    bool tracking,
+    Expression<Func<TSpecificEntity, bool>> filter,
+    IEnumerable<string> includeProperties,
+    CancellationToken cancellationToken)
+    where TSpecificEntity : BaseEntity
+  {
+    var set = DbSet<TSpecificEntity>().AsQueryable();
+
+    set = set.AddIncludes(includeProperties);
+
+    if (filter != null)
+      set = set.Where(filter);
+
+    return await set.IgnoreQueryFilters().PagedList(page, perPage, tracking, cancellationToken);
+  }
+
+  #endregion
+  #region READ (WITHOUT PAGINATION - INCLUDE SOFT DELETED)
+
+  /// <summary>
+  ///   TRANSFER
+  ///   Calls the function responsible for implementation to ensure correct required inheritance.
+  /// </summary>
+  /// <param name="tracking"> Tracking or not. </param>
+  /// <param name="filter"> Filter. </param>
+  /// <param name="includeProperties"> Include properties. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <returns> List of entities. </returns>
+  public virtual async Task<IEnumerable<TEntity>> ListAllAsync(
+    bool tracking,
+    Expression<Func<TEntity, bool>> filter,
+    IEnumerable<string> includeProperties,
+    CancellationToken cancellationToken)
+  {
+    return await ListAllAsync<TEntity>(tracking, filter, includeProperties, cancellationToken);
+  }
+
+  /// <summary>
+  ///   Get a list of entities (without pagination).
+  ///   Include soft deleted entities.
+  /// </summary>
+  /// <param name="tracking"> Tracking or not. </param>
+  /// <param name="filter"> Filter. </param>
+  /// <param name="includeProperties"> Include properties. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <typeparam name="TSpecificEntity"> Type of entity. </typeparam>
+  /// <returns> List of entities. </returns>
+  public virtual async Task<IEnumerable<TSpecificEntity>> ListAllAsync<TSpecificEntity>(
+    bool tracking,
+    Expression<Func<TSpecificEntity, bool>> filter,
+    IEnumerable<string> includeProperties,
+    CancellationToken cancellationToken)
+    where TSpecificEntity : BaseEntity
+  {
+    var set = DbSet<TSpecificEntity>().AsQueryable();
+
+    set = set.AddIncludes(includeProperties);
+
+    if (filter != null)
+      set = set.Where(filter);
+
+    return await set.IgnoreQueryFilters().Tracking(tracking).ToListAsync(cancellationToken);
+  }
+
+  #endregion
+  #region READ (WITH PAGINATION AND SORTING - EXCLUDE SOFT DELETED)
+
+  /// <summary>
+  ///   TRANSFER
+  ///   Calls the function responsible for implementation to ensure correct required inheritance.
+  /// </summary>
+  /// <param name="page"> Page number. </param>
+  /// <param name="perPage"> Number of items per page. </param>
+  /// <param name="tracking"> Tracking or not. </param>
+  /// <param name="filter"> Filter expression. </param>
+  /// <param name="sort"> Sort expression. </param>
+  /// <param name="includeProperties"> Include properties. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <returns> Paged list of entities. </returns>
+  public virtual async Task<PagedList<TEntity>> ListSortedAsync(
+    uint page,
+    uint perPage,
+    bool tracking,
+    Expression<Func<TEntity, bool>> filter,
+    SortClauses sort,
+    IEnumerable<string> includeProperties,
+    CancellationToken cancellationToken)
+  {
+    return await ListSortedAsync<TEntity>(page, perPage, tracking, filter, sort, includeProperties, cancellationToken);
+  }
+
+  /// <summary>
+  ///   Get a list of entities (with pagination and sorting).
+  /// </summary>
+  /// <param name="page"> Page number. </param>
+  /// <param name="perPage"> Number of items per page. </param>
+  /// <param name="tracking"> Tracking or not. </param>
+  /// <param name="filter"> Filter expression. </param>
+  /// <param name="sort"> Sort expression. </param>
+  /// <param name="includeProperties"> Include properties. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <typeparam name="TSpecificEntity"> Type of entity. </typeparam>
+  /// <returns> Paged list of entities. </returns>
+  public virtual async Task<PagedList<TSpecificEntity>> ListSortedAsync<TSpecificEntity>(
+    uint page,
+    uint perPage,
+    bool tracking,
+    Expression<Func<TSpecificEntity, bool>> filter,
+    SortClauses sort,
+    IEnumerable<string> includeProperties,
+    CancellationToken cancellationToken)
+    where TSpecificEntity : BaseEntity
+  {
+    var set = DbSet<TSpecificEntity>().AsQueryable();
+
+    set = set.AddIncludes(includeProperties);
+
+    if (filter != null)
+      set = set.Where(filter);
+
+    set = sort != null
+      ? set.OrderByField(sort.Field, sort.SortDirection == ESort.Asc)
+      : set.OrderByDescending(x => x.CreatedAt);
+
+    return await set.PagedList(page, perPage, tracking, cancellationToken);
+  }
+
+  #endregion
+  #region READ (WITH PAGINATION AND SORTING - INCLUDE SOFT DELETED)
+
+  /// <summary>
+  ///   TRANSFER
+  ///   Calls the function responsible for implementation to ensure correct required inheritance.
+  /// </summary>
+  /// <param name="page"> Page number. </param>
+  /// <param name="perPage"> Number of items per page. </param>
+  /// <param name="tracking"> Tracking or not. </param>
+  /// <param name="filter"> Filter expression. </param>
+  /// <param name="sort"> Sort expression. </param>
+  /// <param name="includeProperties"> Include properties. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <returns> Paged list of entities. </returns>
+  public virtual async Task<PagedList<TEntity>> ListAllSortedAsync(
+    uint page,
+    uint perPage,
+    bool tracking,
+    Expression<Func<TEntity, bool>> filter,
+    SortClauses sort,
+    IEnumerable<string> includeProperties,
+    CancellationToken cancellationToken)
+  {
+    return await ListAllSortedAsync<TEntity>(
+      page, perPage, tracking, filter, sort, includeProperties, cancellationToken);
+  }
+
+  /// <summary>
+  ///   Get a list of entities (with pagination and sorting).
+  ///   Include soft deleted entities.
+  /// </summary>
+  /// <param name="page"> Page number. </param>
+  /// <param name="perPage"> Number of items per page. </param>
+  /// <param name="tracking"> Tracking or not. </param>
+  /// <param name="filter"> Filter expression. </param>
+  /// <param name="sort"> Sort expression. </param>
+  /// <param name="includeProperties"> Include properties. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <typeparam name="TSpecificEntity"> Type of entity. </typeparam>
+  /// <returns> Paged list of entities. </returns>
+  public virtual async Task<PagedList<TSpecificEntity>> ListAllSortedAsync<TSpecificEntity>(
+    uint page,
+    uint perPage,
+    bool tracking,
+    Expression<Func<TSpecificEntity, bool>> filter,
+    SortClauses sort,
+    IEnumerable<string> includeProperties,
+    CancellationToken cancellationToken)
+    where TSpecificEntity : BaseEntity
+  {
+    var set = DbSet<TSpecificEntity>().AsQueryable();
+    set = set.AddIncludes(includeProperties);
+
+    if (filter != null)
+      set = set.Where(filter);
+
+    set = sort != null
+      ? set.OrderByField(sort.Field, sort.SortDirection == ESort.Asc)
+      : set.OrderByDescending(x => x.CreatedAt);
+
+    return await set.IgnoreQueryFilters().PagedList(page, perPage, tracking, cancellationToken);
+  }
+
+  #endregion
+  #region UPDATE
+
+  /// <summary>
+  ///   TRANSFER
+  ///   Calls the function responsible for implementation to ensure correct required inheritance.
+  ///   PS: Just one entity.
+  /// </summary>
+  /// <param name="entity"> Entity. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <returns> Task. </returns>
+  public virtual async Task UpdateAsync(TEntity entity, CancellationToken cancellationToken)
+  {
+    await UpdateAsync<TEntity>(new[] { entity }, cancellationToken);
+  }
+
+  /// <summary>
+  ///   TRANSFER
+  ///   Calls the function responsible for implementation to ensure correct required inheritance.
+  ///   PS: Multiple entities.
+  /// </summary>
+  /// <param name="entities"> Entities. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <returns> Task. </returns>
+  public virtual async Task UpdateAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken)
+  {
+    await UpdateAsync<TEntity>(entities, cancellationToken);
+  }
+
+  /// <summary>
+  ///   Update entity or entities
+  ///   Ignore soft deleted entities.
+  /// </summary>
+  /// <param name="entities"> Entities. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <typeparam name="TSpecificEntity"> Type of entity. </typeparam>
+  /// <returns> Task. </returns>
+  public virtual async Task UpdateAsync<TSpecificEntity>(
+    IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
+    where TSpecificEntity : BaseEntity
+  {
+    await ValidateExistence(entities, cancellationToken);
+
+    var now = DateTime.Now.ToUniversalTime();
+
+    foreach (var entity in entities) entity.UpdatedAt = now;
+
+    await DbSet<TSpecificEntity>().UpdateRangeAsync(entities, cancellationToken);
+  }
+
+  #endregion
+  #region UPDATE (SOFT DELETE)
+
+  /// <summary>
+  ///   TRANSFER
+  ///   Calls the function responsible for implementation to ensure correct required inheritance.
+  ///   PS: Just one entity.
+  /// </summary>
+  /// <param name="entity"> Entity. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <returns> Task. </returns>
+  public virtual async Task SoftDeleteAsync(TEntity entity, CancellationToken cancellationToken)
+  {
+    await SoftDeleteAsync<TEntity>(new[] { entity }, cancellationToken);
+  }
+
+  /// <summary>
+  ///   TRANSFER
+  ///   Calls the function responsible for implementation to ensure correct required inheritance.
+  ///   PS: Multiple entities.
+  /// </summary>
+  /// <param name="entities"> Entities. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <returns> Task. </returns>
+  public virtual async Task SoftDeleteAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken)
+  {
+    await SoftDeleteAsync<TEntity>(entities, cancellationToken);
+  }
+
+  /// <summary>
+  ///   Soft delete entities.
+  ///   Update DeletedAt and Deleted fields.
+  /// </summary>
+  /// <param name="entities"> Entities. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <typeparam name="TSpecificEntity"> Specific entity. </typeparam>
+  /// <returns> Task. </returns>
+  public virtual async Task SoftDeleteAsync<TSpecificEntity>(
+    IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
+    where TSpecificEntity : BaseEntity
+  {
+    await ValidateExistence(entities, cancellationToken);
+
+    var now = DateTime.Now.ToUniversalTime();
+
+    foreach (var entity in entities)
     {
-      await SoftDeleteAsync<TEntity>(new[] { entity }, cancellationToken);
+      entity.DeletedAt = now;
+      entity.Deleted = true;
     }
 
-    public virtual async Task SoftDeleteAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken)
-    {
-      await SoftDeleteAsync<TEntity>(entities, cancellationToken);
-    }
-
-    public virtual async Task SoftDeleteAsync<TSpecificEntity>(IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
-      where TSpecificEntity : BaseEntity
-    {
-      await ValidateExistence(entities, cancellationToken);
-      var now = DateTime.Now.ToUniversalTime();
-
-      foreach (var entity in entities)
-      {
-        entity.DeletedAt = now;
-        entity.Deleted = true;
-      }
-
-      // Verify if have foreign key conflicts to continue or not with soft delete
-      using (var scope = new TransactionScope(TransactionScopeOption.RequiresNew, TransactionScopeAsyncFlowOption.Enabled))
-      {
-        await DbSet<TSpecificEntity>().RemoveRangeAsync(entities, cancellationToken);
-        await Commit(cancellationToken);
-      }
-
-      await DbSet<TSpecificEntity>().UpdateRangeAsync(entities, cancellationToken);
-    }
-
-    public virtual async Task RemoveAsync(TEntity entity, CancellationToken cancellationToken)
-    {
-      await RemoveAsync<TEntity>(new[] { entity }, cancellationToken);
-    }
-
-    public virtual async Task RemoveAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken)
-    {
-      await RemoveAsync<TEntity>(entities, cancellationToken);
-    }
-
-    public virtual async Task RemoveAsync<TSpecificEntity>(IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
-      where TSpecificEntity : BaseEntity
+    // Verify if have foreign key conflicts to continue or not with soft delete
+    using (new TransactionScope(TransactionScopeOption.RequiresNew, TransactionScopeAsyncFlowOption.Enabled))
     {
       await DbSet<TSpecificEntity>().RemoveRangeAsync(entities, cancellationToken);
+      await Commit(cancellationToken);
     }
 
-    public virtual async Task<TEntity> FindAsync(
-      bool tracking,
-      Expression<Func<TEntity, bool>> filter,
-      IEnumerable<string> includeProperties,
-      CancellationToken cancellationToken)
-    {
-      return await FindAsync<TEntity>(tracking, filter, includeProperties, cancellationToken);
-    }
-
-    public virtual async Task<TSpecificEntity> FindAsync<TSpecificEntity>(
-      bool tracking,
-      Expression<Func<TSpecificEntity, bool>> filter,
-      IEnumerable<string> includeProperties,
-      CancellationToken cancellationToken)
-      where TSpecificEntity : BaseEntity
-    {
-      var set = DbSet<TSpecificEntity>().AsQueryable();
-
-      set = set.AddIncludes(includeProperties);
-
-      if (filter != null)
-        set = set.Where(filter);
-
-      return await set.Tracking(tracking).FirstOrDefaultAsync(cancellationToken);
-    }
-
-    public virtual async Task<PagedList<TEntity>> ListAsync(
-      uint page,
-      uint perPage,
-      bool tracking,
-      Expression<Func<TEntity, bool>> filter,
-      IEnumerable<string> includeProperties,
-      CancellationToken cancellationToken)
-    {
-      return await ListAsync<TEntity>(page, perPage, tracking, filter, includeProperties, cancellationToken);
-    }
-
-    public virtual async Task<PagedList<TSpecificEntity>> ListAsync<TSpecificEntity>(
-      uint page,
-      uint perPage,
-      bool tracking,
-      Expression<Func<TSpecificEntity, bool>> filter,
-      IEnumerable<string> includeProperties,
-      CancellationToken cancellationToken)
-      where TSpecificEntity : BaseEntity
-    {
-      var set = DbSet<TSpecificEntity>().AsQueryable();
-
-      set = set.AddIncludes(includeProperties);
-
-      if (filter != null)
-        set = set.Where(filter);
-
-      return await set.PagedList(page, perPage, tracking, cancellationToken);
-    }
-
-    public virtual async Task<IEnumerable<TEntity>> ListAsync(
-      bool tracking,
-      Expression<Func<TEntity, bool>> filter,
-      IEnumerable<string> includeProperties,
-      CancellationToken cancellationToken)
-    {
-      return await ListAsync<TEntity>(tracking, filter, includeProperties, cancellationToken);
-    }
-
-    public virtual async Task<IEnumerable<TSpecificEntity>> ListAsync<TSpecificEntity>(
-      bool tracking,
-      Expression<Func<TSpecificEntity, bool>> filter,
-      IEnumerable<string> includeProperties,
-      CancellationToken cancellationToken)
-      where TSpecificEntity : BaseEntity
-    {
-      var set = DbSet<TSpecificEntity>().AsQueryable();
-
-      set = set.AddIncludes(includeProperties);
-
-      if (filter != null)
-        set = set.Where(filter);
-
-      return await set.Tracking(tracking).ToListAsync(cancellationToken);
-    }
-
-    public virtual async Task<PagedList<TEntity>> ListAllAsync(
-      uint page,
-      uint perPage,
-      bool tracking,
-      Expression<Func<TEntity, bool>> filter,
-      IEnumerable<string> includeProperties,
-      CancellationToken cancellationToken)
-    {
-      return await ListAllAsync<TEntity>(page, perPage, tracking, filter, includeProperties, cancellationToken);
-    }
-
-    public virtual async Task<PagedList<TSpecificEntity>> ListAllAsync<TSpecificEntity>(
-      uint page,
-      uint perPage,
-      bool tracking,
-      Expression<Func<TSpecificEntity, bool>> filter,
-      IEnumerable<string> includeProperties,
-      CancellationToken cancellationToken)
-        where TSpecificEntity : BaseEntity
-    {
-      var set = DbSet<TSpecificEntity>().AsQueryable();
-
-      set = set.AddIncludes(includeProperties);
-
-      if (filter != null)
-        set = set.Where(filter);
-
-      return await set.IgnoreQueryFilters().PagedList(page, perPage, tracking, cancellationToken);
-    }
-
-    public virtual async Task<IEnumerable<TEntity>> ListAllAsync(
-      bool tracking,
-      Expression<Func<TEntity, bool>> filter,
-      IEnumerable<string> includeProperties,
-      CancellationToken cancellationToken)
-    {
-      return await ListAllAsync<TEntity>(tracking, filter, includeProperties, cancellationToken);
-    }
-
-    public virtual async Task<IEnumerable<TSpecificEntity>> ListAllAsync<TSpecificEntity>(
-      bool tracking,
-      Expression<Func<TSpecificEntity, bool>> filter,
-      IEnumerable<string> includeProperties,
-      CancellationToken cancellationToken)
-      where TSpecificEntity : BaseEntity
-    {
-      var set = DbSet<TSpecificEntity>().AsQueryable();
-
-      set = set.AddIncludes(includeProperties);
-
-      if (filter != null)
-        set = set.Where(filter);
-
-      return await set.IgnoreQueryFilters().Tracking(tracking).ToListAsync(cancellationToken);
-    }
-
-    public async Task Commit(CancellationToken cancellationToken)
-    {
-      Exception shouldThrow = null;
-
-      try
-      {
-        await _context.SaveChangesAsync(cancellationToken);
-      }
-      catch (Exception e)
-      {
-        await _context.DisposeAsync();
-        shouldThrow = e;
-      }
-
-      if (shouldThrow != null) throw shouldThrow;
-    }
+    await DbSet<TSpecificEntity>().UpdateRangeAsync(entities, cancellationToken);
   }
 
-  public static class TestExtensions
+  #endregion
+  #region UPSERT
+
+  /// <summary>
+  ///   TRANSFER
+  ///   Calls the function responsible for implementation to ensure correct required inheritance.
+  ///   PS: Just one entity.
+  /// </summary>
+  /// <param name="entity"> Entity. </param>
+  /// <param name="match"> Match condition. </param>
+  /// <param name="updater"> Updater data. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <returns> Task. </returns>
+  public virtual async Task UpsertAsync(
+    TEntity entity,
+    Expression<Func<TEntity, object>> match,
+    Expression<Func<TEntity, TEntity, TEntity>> updater,
+    CancellationToken cancellationToken)
   {
-    public static string ToSql<TEntity>(this IQueryable<TEntity> query)
-      where TEntity : class
-    {
-      var enumerator = query.Provider.Execute<IEnumerable<TEntity>>(query.Expression).GetEnumerator();
-      var relationalCommandCache = enumerator.Private("_relationalCommandCache");
-      var selectExpression = relationalCommandCache.Private<SelectExpression>("_selectExpression");
-      var factory = relationalCommandCache.Private<IQuerySqlGeneratorFactory>("_querySqlGeneratorFactory");
-
-      var sqlGenerator = factory.Create();
-      var command = sqlGenerator.GetCommand(selectExpression);
-
-      string sql = command.CommandText;
-      return sql;
-    }
-
-    [SuppressMessage("Major Code Smell", "S3011:Reflection should not be used to increase accessibility of classes, methods, or fields", Justification = "<Pendente>")]
-    private static object Private(this object obj, string privateField) =>
-      obj?.GetType().GetField(privateField, BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(obj);
-
-    [SuppressMessage("Major Code Smell", "S3011:Reflection should not be used to increase accessibility of classes, methods, or fields", Justification = "<Pendente>")]
-    private static T Private<T>(this object obj, string privateField) =>
-      (T)obj?.GetType().GetField(privateField, BindingFlags.Instance | BindingFlags.NonPublic)?.GetValue(obj);
+    await UpsertAsync<TEntity>(entity, match, updater, cancellationToken);
   }
+
+  /// <summary>
+  ///   Upsert entity.
+  ///   Just one entity.
+  /// </summary>
+  /// <param name="entity"> Entity. </param>
+  /// <param name="match"> Match condition. </param>
+  /// <param name="updater"> Updater data. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <typeparam name="TSpecificEntity"> Specific entity. </typeparam>
+  /// <returns> Task. </returns>
+  public virtual async Task UpsertAsync<TSpecificEntity>(
+    TEntity entity,
+    Expression<Func<TEntity, object>> match,
+    Expression<Func<TEntity, TEntity, TEntity>> updater,
+    CancellationToken cancellationToken)
+    where TSpecificEntity : BaseEntity
+  {
+    var now = DateTime.Now.ToUniversalTime();
+
+    entity.CreatedAt = now;
+    entity.UpdatedAt = now;
+
+    await DbSet<TEntity>().Upsert(entity).On(match).WhenMatched(updater).RunAsync(cancellationToken);
+  }
+
+  #endregion
+  #region DELETE
+
+  /// <summary>
+  ///   TRANSFER
+  ///   Calls the function responsible for implementation to ensure correct required inheritance.
+  ///   PS: Just one entity.
+  /// </summary>
+  /// <param name="entity"> Entity. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <returns> Task. </returns>
+  public virtual async Task RemoveAsync(TEntity entity, CancellationToken cancellationToken)
+  {
+    await RemoveAsync<TEntity>(new[] { entity }, cancellationToken);
+  }
+
+  /// <summary>
+  ///   TRANSFER
+  ///   Calls the function responsible for implementation to ensure correct required inheritance.
+  ///   PS: Multiple entities.
+  /// </summary>
+  /// <param name="entities"> Entities. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <returns> Task. </returns>
+  public virtual async Task RemoveAsync(IEnumerable<TEntity> entities, CancellationToken cancellationToken)
+  {
+    await RemoveAsync<TEntity>(entities, cancellationToken);
+  }
+
+  /// <summary>
+  ///   Deletes the entity from the database.
+  /// </summary>
+  /// <param name="entities"> Entities. </param>
+  /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <typeparam name="TSpecificEntity"> Entity type. </typeparam>
+  /// <returns> Task. </returns>
+  public virtual async Task RemoveAsync<TSpecificEntity>(
+    IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
+    where TSpecificEntity : BaseEntity
+  {
+    await DbSet<TSpecificEntity>().RemoveRangeAsync(entities, cancellationToken);
+  }
+
+  #endregion
 }
