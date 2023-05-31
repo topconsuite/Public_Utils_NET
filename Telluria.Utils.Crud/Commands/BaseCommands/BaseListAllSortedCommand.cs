@@ -1,8 +1,8 @@
 using System;
 using System.Linq.Expressions;
 using System.Threading;
-using elluria.Utils.Crud.GraphQL.InputTypes;
 using Telluria.Utils.Crud.Entities;
+using Telluria.Utils.Crud.GraphQL.InputTypes;
 
 namespace Telluria.Utils.Crud.Commands.BaseCommands;
 

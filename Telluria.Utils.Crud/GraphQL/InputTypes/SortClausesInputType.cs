@@ -1,7 +1,7 @@
 using GraphQL.Types;
 using Telluria.Utils.Crud.Constants.Enums;
 
-namespace elluria.Utils.Crud.GraphQL.InputTypes;
+namespace Telluria.Utils.Crud.GraphQL.InputTypes;
 
 public class SortClauses
 {
