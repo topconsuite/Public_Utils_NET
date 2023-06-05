@@ -1,27 +1,34 @@
 ## Telluria.Utils.Crud
+
 Generic library for easy creation of CRUD rest APIs with dotnet and EntityFrameworkCore.
 
 <hr/>
 
 ### Dependencies
+
 - .NET 6.0 [(go to site)](https://dotnet.microsoft.com/download).
 - AutoMapper (>= 10.1.1) [(go to package)](https://www.nuget.org/packages/AutoMapper).
 - Flunt (>= 2.0.5) [(go to package)](https://www.nuget.org/packages/Flunt).
 - LinqKit.Core (>= 1.1.27) [(go to package)](https://www.nuget.org/packages/LinqKit.Core).
-- Microsoft.AspNetCore.Mvc.Core (>= 2.2.5) [(go to package)](https://www.nuget.org/packages/Microsoft.AspNetCore.Mvc.Core).
-- Microsoft.EntityFrameworkCore.Relational (>= 6.0.0) [(go to package)](https://www.nuget.org/packages/Microsoft.EntityFrameworkCore.Relational).
+- Microsoft.AspNetCore.Mvc.Core (>=
+  2.2.5) [(go to package)](https://www.nuget.org/packages/Microsoft.AspNetCore.Mvc.Core).
+- Microsoft.EntityFrameworkCore.Relational (>=
+  6.0.0) [(go to package)](https://www.nuget.org/packages/Microsoft.EntityFrameworkCore.Relational).
 
 <hr/>
 
 ### Instalation:
+
 This package is available through Nuget Packages: https://www.nuget.org/packages/Telluria.Utils.Crud
 
 **Nuget**
+
 ```
 Install-Package Telluria.Utils.Crud
 ```
 
 **.NET CLI**
+
 ```
 dotnet add package Telluria.Utils.Crud
 ```
@@ -31,7 +38,9 @@ dotnet add package Telluria.Utils.Crud
 ## How to use:
 
 ### 1. Creating Entity Models
+
 Extend your entities from the "**BaseEntity**" class located in namespace "**Telluria.Utils.Crud.Entities**":
+
 ```csharp
 using System;
 using System.Collections.Generic;
@@ -87,7 +96,10 @@ public class OrderItem : BaseEntity
 ```
 
 ### 2. Mapping Entities
-Extend your mapping classes from the "**BaseEntityMap<T>**" class located in namespace "**Telluria.Utils.Crud.Mapping**":
+
+Extend your mapping classes from the "**BaseEntityMap<T>**" class located in namespace "**Telluria.Utils.Crud.Mapping
+**":
+
 ```csharp
 // Import Library
 using Telluria.Utils.Crud.Mapping;
@@ -146,7 +158,10 @@ public class OrderItemMap : BaseEntityMap<OrderItem>
 ```
 
 ### 3. Creating an AppDbContext
-Extend your AppDbContext classes from the "**DbContext**" class located in namespace "**Microsoft.EntityFrameworkCore**", override "**OnModelCreating**" method and add your Mapping classes to the modelBuilder:
+
+Extend your AppDbContext classes from the "**DbContext**" class located in namespace "**Microsoft.EntityFrameworkCore
+**", override "**OnModelCreating**" method and add your Mapping classes to the modelBuilder:
+
 ```csharp
 using Microsoft.EntityFrameworkCore;
 
@@ -170,7 +185,10 @@ public class AppDbContext : DbContext
 ```
 
 ### 4. Creating the Controllers
-Extend your Controllers classes from the "**BaseCrudController**" class located in namespace "**Telluria.Utils.Crud.Controllers**":
+
+Extend your Controllers classes from the "**BaseCrudController**" class located in namespace "*
+*Telluria.Utils.Crud.Controllers**":
+
 ```csharp
 // Import Library
 using Telluria.Utils.Crud.Controllers;
@@ -189,7 +207,10 @@ public class OrderItemsController : BaseCrudController<OrderItem> {}
 ```
 
 ### 5. Configuring services
-In your "**Startup.cs**" file, import namespace "**Telluria.Utils.Crud**" and in "**ConfigureServices**" method add the following:
+
+In your "**Startup.cs**" file, import namespace "**Telluria.Utils.Crud**" and in "**ConfigureServices**" method add the
+following:
+
 ```csharp
 /* Startup.cs */
 
@@ -210,10 +231,9 @@ public class Startup
     {
         ...
 
-        /* --- ADD THIS 3 LINES --- */
+        /* --- ADD THIS 2 LINES --- */
         services.AddDbContext<AppDbContext>();
         services.AddScoped<DbContext, AppDbContext>();
-        services.AddCrud();
         /* ---------------------- */
 
         services.AddControllers();
@@ -228,15 +248,21 @@ public class Startup
 ```
 
 ### Ready to go!
+
 Note: Before running the project, remember to create the database using migrations (or manually, if you prefer)
 
 <hr/>
 
 ## Using DTOs
-This package allows you to implement "**RequestDTO**" templates for the **Create** and **Update** CRUD operations, along with a "**ResponseDTO**" for all returns:
+
+This package allows you to implement "**RequestDTO**" templates for the **Create** and **Update** CRUD operations, along
+with a "**ResponseDTO**" for all returns:
 
 ### 1. Implementing "**ResponseDTO**"
-Extend your ResponseDTO class from the "**IResponseDTO<Customer><T>**" interface located in namespace "**Telluria.Utils.Crud.DTOs**":
+
+Extend your ResponseDTO class from the "**IResponseDTO<Customer><T>**" interface located in namespace "*
+*Telluria.Utils.Crud.DTOs**":
+
 ```csharp
 // Import Library
 using Telluria.Utils.Crud.DTOs;
@@ -252,7 +278,9 @@ public class CustomerResponseDTO : IResponseDTO<Customer>
 ```
 
 ### 2. Entering the DTO types in the controller definition
+
 Same as previous Controller definition, but with DTO type parameters:
+
 ```csharp
 // Import Library
 using Telluria.Utils.Crud.Controllers;
@@ -269,56 +297,61 @@ public class CustomersController
 <hr/>
 
 ## Querying and Pagination
-The API generated by this library has many features available like: **Querying**, **Pagination** and **Nested Includes** for child Entities/Lists:
+
+The API generated by this library has many features available like: **Querying**, **Pagination** and **Nested Includes**
+for child Entities/Lists:
 
 ### Pagination samples
+
 ```
     GET /customers?page=2&perPage=20
-```
-```
     GET /customers?page=1&perPage=35
 ```
 
 ### Querying samples
-- The query has to start with "**$(**" and ends whith "**)**"
+
+- The query has to start with "**$(**" and ends with "**)**"
 - The clauses must be separated by "**;**"
 - Operators:
-    "**==**"" (Equal)
-    "**>=**"" (GreaterThanOrEqual)
-    "**<=**"" (LessThanOrEqual)
-    "**>>**"" (GreaterThan)
-    "**<<**"" (LessThan)
-    "**%=**"" (Contains)
-    "**%>**"" (In) (for this option, values must be separeted by "**|**")
+  - "**==**" (Equal)
+  - "**>=**" (GreaterThanOrEqual)
+  - "**<=**" (LessThanOrEqual)
+  - "**>>**" (GreaterThan)
+  - "**<<**" (LessThan)
+  - "**%=**" (Contains)
+  - "**%>**" (In) (for this option, values must be separated by "**|**")
+
 ```
     GET /customers?where=$(email==jhondoe@gmail.com)
-```
-```
     GET /customers?where=$(email%=jhon;name%=jhon)
-```
-```
     GET /products?where=$(price>=10;type==FEEDSTOCK)
-```
-```
     GET /products?where=$(price<<10)
 ```
 
 ### Nested Includes
+
 You can use this if there are foreign key constraints for the related items:
+
 ```
     GET /orders?include=items
-```
-```
     GET /orders?include=items.product
-```
-```
     GET /orders?include=customer
-```
-```
     GET /orders?include=items.product&include=customer
 ```
 
+### Sorting
+
+- The sort has to start with "**$(**" and ends with "**)**"
+- The clauses must be separated by "**;**"
+- Indicators
+  - "**==**" (Set the order direction)
+
+```
+    GET /orders?sort=$(createdAt==desc;name==asc)
+```
+
 ### All previous itens can be used together
+
 ```
     GET /orders?page=1&perPage=35&include=items.product&include=customer&where=$(customerId==<SOME_GUID>)
 ```
