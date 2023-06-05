@@ -5,7 +5,13 @@ namespace Telluria.Utils.Crud.GraphQL.InputTypes;
 
 public class SortClauses
 {
-  public string Field { get; set; } = string.Empty;
+  public SortClauses(string field, ESort descSortDirection)
+  {
+    Field = field;
+    SortDirection = descSortDirection;
+  }
+
+  public string Field { get; set; }
   public ESort SortDirection { get; set; }
 }
 
