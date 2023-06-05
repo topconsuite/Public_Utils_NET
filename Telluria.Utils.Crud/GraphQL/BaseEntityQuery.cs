@@ -93,7 +93,7 @@ public abstract class BaseEntityQuery<TEntity, TGraphType, TValidator, TReposito
       .Argument<IntGraphType>("perPage", "The page number")
       .Argument<ListGraphType<WhereClausesInputType>>("where", "The where clause")
       .Argument<BooleanGraphType>("includeDeleted", "Include deleted items")
-      .Argument<SortInputType>("sort", "Sort by field")
+      .Argument<ListGraphType<SortInputType>>("sort", "Sort by field")
       .ResolveAsync(async context =>
       {
         var page = context.GetArgument<uint>("page");
@@ -104,13 +104,13 @@ public abstract class BaseEntityQuery<TEntity, TGraphType, TValidator, TReposito
 
         var where = context.GetArgument<List<WhereClauses>>("where");
         var whereClauses = ParserWhereClauses.Parse<TEntity>(where ?? new List<WhereClauses>());
-        var sort = context.GetArgument<SortClauses>("sort");
+        var sort = context.GetArgument<List<SortClauses>>("sort");
 
         var response = context.GetArgument<bool>("includeDeleted")
           ? await handler.HandleAsync(new BaseListAllSortedCommand<TEntity>(
-            page, perPage, whereClauses, sort, includes, cancellationToken))
+            page, perPage, whereClauses, sort.ToArray(), includes, cancellationToken))
           : await handler.HandleAsync(new BaseListSortedCommand<TEntity>(
-            page, perPage, whereClauses, sort, includes, cancellationToken));
+            page, perPage, whereClauses, sort.ToArray(), includes, cancellationToken));
 
         if (response.Status == ECommandResultStatus.SUCCESS)
           return response;
