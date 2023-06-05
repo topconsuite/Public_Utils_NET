@@ -463,7 +463,7 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     uint perPage,
     bool tracking,
     Expression<Func<TEntity, bool>> filter,
-    SortClauses sort,
+    SortClauses[] sort,
     IEnumerable<string> includeProperties,
     CancellationToken cancellationToken)
   {
@@ -487,23 +487,42 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     uint perPage,
     bool tracking,
     Expression<Func<TSpecificEntity, bool>> filter,
-    SortClauses sort,
+    SortClauses[] sort,
     IEnumerable<string> includeProperties,
     CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity
   {
     var set = DbSet<TSpecificEntity>().AsQueryable();
+    var orderedQuery = set.OrderByDescending(x => x.CreatedAt);
 
     set = set.AddIncludes(includeProperties);
 
     if (filter != null)
       set = set.Where(filter);
 
-    set = sort != null
-      ? set.OrderByField(sort.Field, sort.SortDirection == ESort.Asc)
-      : set.OrderByDescending(x => x.CreatedAt);
+    // Verify if sort is null, if it is, use default sort (CreatedAt descending).
+    if (sort is not { Length: > 0 })
+      return await orderedQuery.IgnoreQueryFilters().PagedList(page, perPage, tracking, cancellationToken);
 
-    return await set.PagedList(page, perPage, tracking, cancellationToken);
+    for (var i = 0; i < sort.Length; i++)
+    {
+      var clause = sort[i];
+      var desc = clause.SortDirection == ESort.DESC;
+
+      if (i == 0)
+        orderedQuery = set.OrderBy(clause.Field, desc);
+      else
+        orderedQuery = orderedQuery.ThenBy(clause.Field, desc);
+    }
+
+    return await orderedQuery.IgnoreQueryFilters().PagedList(page, perPage, tracking, cancellationToken);
+  }
+
+  private static LambdaExpression GetExpression(Type type, string propertyName)
+  {
+    var parameterExp = Expression.Parameter(type, "type");
+    var propertyExp = Expression.Property(parameterExp, propertyName);
+    return Expression.Lambda(propertyExp, parameterExp);
   }
 
   #endregion
@@ -526,7 +545,7 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     uint perPage,
     bool tracking,
     Expression<Func<TEntity, bool>> filter,
-    SortClauses sort,
+    SortClauses[] sort,
     IEnumerable<string> includeProperties,
     CancellationToken cancellationToken)
   {
@@ -552,22 +571,35 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     uint perPage,
     bool tracking,
     Expression<Func<TSpecificEntity, bool>> filter,
-    SortClauses sort,
+    SortClauses[] sort,
     IEnumerable<string> includeProperties,
     CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity
   {
     var set = DbSet<TSpecificEntity>().AsQueryable();
+    var orderedQuery = set.OrderByDescending(x => x.CreatedAt);
+
     set = set.AddIncludes(includeProperties);
 
     if (filter != null)
       set = set.Where(filter);
 
-    set = sort != null
-      ? set.OrderByField(sort.Field, sort.SortDirection == ESort.Asc)
-      : set.OrderByDescending(x => x.CreatedAt);
+    // Verify if sort is null, if it is, use default sort (CreatedAt descending).
+    if (sort is not { Length: > 0 })
+      return await orderedQuery.IgnoreQueryFilters().PagedList(page, perPage, tracking, cancellationToken);
 
-    return await set.IgnoreQueryFilters().PagedList(page, perPage, tracking, cancellationToken);
+    for (var i = 0; i < sort.Length; i++)
+    {
+      var clause = sort[i];
+      var desc = clause.SortDirection == ESort.DESC;
+
+      if (i == 0)
+        orderedQuery = set.OrderBy(clause.Field, desc);
+      else
+        orderedQuery = orderedQuery.ThenBy(clause.Field, desc);
+    }
+
+    return await orderedQuery.IgnoreQueryFilters().PagedList(page, perPage, tracking, cancellationToken);
   }
 
   #endregion

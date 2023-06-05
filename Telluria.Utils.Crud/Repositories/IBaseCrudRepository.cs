@@ -130,7 +130,7 @@ public interface IBaseCrudRepository<TEntity>
     uint perPage,
     bool tracking,
     Expression<Func<TEntity, bool>> filter,
-    SortClauses sort,
+    SortClauses[] sort,
     IEnumerable<string> includeProperties,
     CancellationToken cancellationToken);
 
@@ -139,7 +139,7 @@ public interface IBaseCrudRepository<TEntity>
     uint perPage,
     bool tracking,
     Expression<Func<TSpecificEntity, bool>> filter,
-    SortClauses sort,
+    SortClauses[] sort,
     IEnumerable<string> includeProperties,
     CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity;
@@ -152,7 +152,7 @@ public interface IBaseCrudRepository<TEntity>
     uint perPage,
     bool tracking,
     Expression<Func<TEntity, bool>> filter,
-    SortClauses sort,
+    SortClauses[] sort,
     IEnumerable<string> includeProperties,
     CancellationToken cancellationToken);
 
@@ -161,7 +161,7 @@ public interface IBaseCrudRepository<TEntity>
     uint perPage,
     bool tracking,
     Expression<Func<TSpecificEntity, bool>> filter,
-    SortClauses sort,
+    SortClauses[] sort,
     IEnumerable<string> includeProperties,
     CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity;
