@@ -13,7 +13,7 @@ public class BaseListSortedCommand<TEntity> : IListCommand
     uint page,
     uint perPage,
     Expression<Func<TEntity, bool>> where,
-    SortClauses sort,
+    SortClauses[] sort,
     string[] includes,
     CancellationToken cancellationToken)
   {
@@ -27,7 +27,7 @@ public class BaseListSortedCommand<TEntity> : IListCommand
 
   public Expression<Func<TEntity, bool>> Where { get; set; }
   public string[] Includes { get; set; }
-  public SortClauses Sort { get; set; }
+  public SortClauses[] Sort { get; set; }
   public CancellationToken CancellationToken { get; set; }
   public uint Page { get; set; }
   public uint PerPage { get; set; }
