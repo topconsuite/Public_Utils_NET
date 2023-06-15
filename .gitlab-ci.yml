@@ -33,6 +33,7 @@ Sonarqube analyze:
     paths:
       - "Telluria.Utils.Crud/.sonar/cache"
   script:
+    - "export PROJECT_VERSION=$(cat Telluria.Utils.Crud/Telluria.Utils.Crud.csproj | grep '<AssemblyVersion>' | sed 's/<[^>]*>//g')"
     - "wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb"
     - "dpkg -i packages-microsoft-prod.deb"
     - "rm packages-microsoft-prod.deb"
@@ -42,7 +43,7 @@ Sonarqube analyze:
     - "dotnet tool install --global dotnet-sonarscanner"
     - 'export PATH="$PATH:$HOME/.dotnet/tools"'
     - "cd Telluria.Utils.Crud"
-    - 'dotnet sonarscanner begin /k:"Telluria-Utils-.NET-CRUD-" /v:"1.26.0" /d:sonar.login="$SONAR_TOKEN" /d:"sonar.host.url=$SONAR_HOST_URL" '
+    - 'dotnet sonarscanner begin /k:"Telluria-Utils-.NET-CRUD-" /v:"$PROJECT_VERSION" /d:sonar.login="$SONAR_TOKEN" /d:"sonar.host.url=$SONAR_HOST_URL" '
     - "dotnet build"
     - 'dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN"'
   allow_failure: true
