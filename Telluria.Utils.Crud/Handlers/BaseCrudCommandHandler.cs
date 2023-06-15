@@ -18,7 +18,7 @@ public abstract class
   where TValidator : BaseEntityValidator<TEntity>, new()
   where TRepository : IBaseCrudRepository<TEntity>
 {
-  private readonly TRepository _repository;
+  protected readonly TRepository _repository;
 
   protected BaseCrudCommandHandler(TRepository repository)
   {
@@ -340,7 +340,7 @@ public abstract class
   /// </summary>
   /// <param name="validationResult"> The validation result. </param>
   /// <returns> Command result (validation error). </returns>
-  private ICommandResult GetDefaultValidationError(ValidationResult validationResult)
+  protected ICommandResult GetDefaultValidationError(ValidationResult validationResult)
   {
     return new CommandResult(
       ECommandResultStatus.ALERT,
@@ -354,7 +354,7 @@ public abstract class
   ///   Get default not found error command result.
   /// </summary>
   /// <returns> Command result (not found error). </returns>
-  private ICommandResult GetDefaultNotFoundError()
+  protected ICommandResult GetDefaultNotFoundError()
   {
     return new CommandResult(
       ECommandResultStatus.ALERT,
