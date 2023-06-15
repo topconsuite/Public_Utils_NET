@@ -1,5 +1,4 @@
 using FluentValidation;
-using GraphQL.Types;
 using Microsoft.EntityFrameworkCore;
 using Telluria.Utils.Crud.CommandResults;
 using Telluria.Utils.Crud.Controllers;
@@ -11,159 +10,159 @@ using Telluria.Utils.Crud.Mapping;
 using Telluria.Utils.Crud.Repositories;
 using Telluria.Utils.Crud.Validation;
 
-namespace Telluria.Utils.Crud.Sample
+namespace Telluria.Utils.Crud.Sample;
+/*
+ * MIGRATIONS COMMANDS:
+ * -> dotnet ef migrations add InitialCreate
+ * -> dotnet ef database update
+ */
+
+// Domain.Enums
+public enum EProductStockType
 {
-  /*
-   * MIGRATIONS COMMANDS:
-   * -> dotnet ef migrations add InitialCreate
-   * -> dotnet ef database update
-   */
+  OWN,
+  FROM_THIRD_PARTY,
+  IN_THIRD_PARTY
+}
 
-  // Domain.Enums
-  public enum EProductStockType
-  {
-    OWN,
-    FROM_THIRD_PARTY,
-    IN_THIRD_PARTY,
-  }
+// Domain.Entities
+public class Product : BaseEntity
+{
+  public string Code { get; set; } = string.Empty;
+  public string Name { get; set; } = string.Empty;
+  public decimal Price { get; set; }
+  public EProductStockType? StockType { get; set; }
+}
 
-  // Domain.Entities
-  public class Product : BaseEntity
+// Domain.Validators
+public class ProductValidator : BaseEntityValidator<Product>
+{
+  public ProductValidator()
   {
-    public string Code { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public decimal Price { get; set; }
-    public EProductStockType? StockType { get; set; }
-  }
-
-  // Domain.Validators
-  public class ProductValidator : BaseEntityValidator<Product>
-  {
-    public ProductValidator()
+    var upsertRule = () =>
     {
-      var upsertRule = () =>
-      {
-        RuleFor(x => x.Code).NotEmpty();
-        RuleFor(x => x.Name).NotEmpty();
-        RuleFor(x => x.Price).NotEmpty().GreaterThan(0);
-      };
+      RuleFor(x => x.Code).NotEmpty();
+      RuleFor(x => x.Name).NotEmpty();
+      RuleFor(x => x.Price).NotEmpty().GreaterThan(0);
+    };
 
-      AddBaseRuleCreate(upsertRule);
-      AddBaseRuleUpdate(upsertRule);
+    AddBaseRuleCreate(upsertRule);
+    AddBaseRuleUpdate(upsertRule);
 
-      RuleSet("DELETE", () =>
-      {
-        RuleFor(x => x.Id).NotEmpty();
-      });
-    }
+    RuleSet("DELETE", () => { RuleFor(x => x.Id).NotEmpty(); });
   }
+}
 
-  // Data.Mapping
-  public class ProductMap : BaseEntityMap<Product>
+// Data.Mapping
+public class ProductMap : BaseEntityMap<Product>
+{
+}
+
+// Domain.Interfaces.Repositories
+public interface IProductRepository : IBaseCrudRepository<Product>
+{
+}
+
+// Data.Repositories
+public class ProductRepository : BaseCrudRepository<Product>, IProductRepository
+{
+  public ProductRepository(DbContext context) : base(context)
+  {
+  }
+}
+
+// Domain.Interfaces.Handlers
+public interface IProductCommandHandler : IBaseCrudCommandHandler<Product, ProductValidator, IProductRepository>
+{
+}
+
+// Domain.Handlers
+public class ProductCommandHandler : BaseCrudCommandHandler<Product, ProductValidator, IProductRepository>,
+  IProductCommandHandler
+{
+  public ProductCommandHandler(IProductRepository repository) : base(repository)
   {
   }
 
-  // Domain.Interfaces.Repositories
-  public interface IProductRepository : IBaseCrudRepository<Product>
+  protected override string GetSuccessMessage(EBaseCrudCommands command)
   {
-  }
-
-  // Data.Repositories
-  public class ProductRepository : BaseCrudRepository<Product>, IProductRepository
-  {
-    public ProductRepository(DbContext context) : base(context)
+    return command switch
     {
-    }
+      // EBaseCrudCommands contains ALL base CRUD operations
+      EBaseCrudCommands.CREATE => "Sample Create Message (use translations here)",
+      EBaseCrudCommands.UPDATE => "Sample Update Message (use translations here)",
+      /* (specify other operations in EBaseCrudCommands as needed) */
+      _ => GetDefaultSuccessMessage(command)
+    };
   }
 
-  // Domain.Interfaces.Handlers
-  public interface IProductCommandHandler : IBaseCrudCommandHandler<Product, ProductValidator, IProductRepository>
+  protected override ICommandResult HandleErrors(Exception exception)
   {
+    var result = GetDefaultError(exception);
+
+    /* (handle specific entity errors here) */
+
+    return result;
   }
+}
 
-  // Domain.Handlers
-  public class ProductCommandHandler : BaseCrudCommandHandler<Product, ProductValidator, IProductRepository>, IProductCommandHandler
+// API.Controllers
+public class
+  ProductsController : BaseCrudController<Product, ProductValidator, IProductRepository, IProductCommandHandler>
+{
+}
+
+public class ProductType : BaseEntityGraphType<Product>
+{
+  public ProductType()
   {
-    public ProductCommandHandler(IProductRepository repository) : base(repository)
-    {
-    }
-
-    protected override string GetSuccessMessage(EBaseCrudCommands command)
-    {
-      return command switch
-      {
-        // EBaseCrudCommands contains ALL base CRUD operations
-        EBaseCrudCommands.CREATE => "Sample Create Message (use translations here)",
-        EBaseCrudCommands.UPDATE => "Sample Update Message (use translations here)",
-        /* (specify other operations in EBaseCrudCommands as needed) */
-        _ => GetDefaultSuccessMessage(command)
-      };
-    }
-
-    protected override ICommandResult HandleErrors(Exception exception)
-    {
-      var result = GetDefaultError(exception);
-
-      /* (handle specific entity errors here) */
-
-      return result;
-    }
+    Field(x => x.Code, false);
+    Field(x => x.Name, false);
+    Field(x => x.Price, false);
+    Field(x => x.StockType, true);
   }
+}
 
-  // API.Controllers
-  public class ProductsController : BaseCrudController<Product, ProductValidator, IProductRepository, IProductCommandHandler>
+public class ProductCreateInputType : BaseCreateInputType<Product>
+{
+  public ProductCreateInputType()
   {
+    Field(x => x.Code, false);
+    Field(x => x.Name, false);
+    Field(x => x.Price, false);
+    Field(x => x.StockType, true);
   }
+}
 
-  public class ProductType : BaseEntityGraphType<Product>
+public class ProductUpdateInputType : BaseUpdateInputType<Product>
+{
+  public ProductUpdateInputType()
   {
-    public ProductType()
-    {
-      Field(x => x.Code, nullable: false);
-      Field(x => x.Name, nullable: false);
-      Field(x => x.Price, nullable: false);
-      Field(x => x.StockType, nullable: true);
-    }
+    Field(x => x.Code, true);
+    Field(x => x.Name, true);
+    Field(x => x.Price, true);
+    Field(x => x.StockType, true);
   }
+}
 
-  public class ProductCreateInputType : BaseCreateInputType<Product>
+public class ProductMutation : BaseEntityMutation<Product, ProductType, ProductValidator, IProductRepository,
+  IProductCommandHandler>
+{
+  public ProductMutation()
   {
-    public ProductCreateInputType()
-    {
-      Field(x => x.Code, nullable: false);
-      Field(x => x.Name, nullable: false);
-      Field(x => x.Price, nullable: false);
-      Field(x => x.StockType, nullable: true);
-    }
+    AddBaseMutationCreate<ProductCreateInputType>();
+    AddBaseMutationUpdate<ProductUpdateInputType>();
+    AddBaseMutationDelete();
   }
+}
 
-  public class ProductUpdateInputType : BaseUpdateInputType<Product>
+public class ProductQuery : BaseEntityQuery<Product, ProductType, ProductValidator, IProductRepository,
+  IProductCommandHandler>
+{
+  public ProductQuery()
   {
-    public ProductUpdateInputType()
-    {
-      Field(x => x.Code, nullable: true);
-      Field(x => x.Name, nullable: true);
-      Field(x => x.Price, nullable: true);
-      Field(x => x.StockType, nullable: true);
-    }
-  }
-
-  public class ProductMutation : BaseEntityMutation<Product, ProductType, ProductValidator, IProductRepository, IProductCommandHandler>
-  {
-    public ProductMutation()
-    {
-      AddBaseMutationCreate<ProductCreateInputType>();
-      AddBaseMutationUpdate<ProductUpdateInputType>();
-      AddBaseMutationDelete();
-    }
-  }
-
-  public class ProductQuery : BaseEntityQuery<Product, ProductType, ProductValidator, IProductRepository, IProductCommandHandler>
-  {
-    public ProductQuery()
-    {
-      AddBaseQueryGetById();
-      AddBaseQueryGetAll();
-    }
+    AddBaseQueryGetById();
+    AddBaseQueryGetAll();
+    AddGetWithSortedPagination();
   }
 }
