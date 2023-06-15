@@ -41,9 +41,13 @@ public abstract class BaseCrudController<TEntity, TValidator, TRepository, TComm
   {
     IListCommand command = query!.Sort != null
       ? new BaseListSortedCommand<TEntity>(
-        query.Page, query.PerPage, query.GetFilter(), query.GetSorters(), query.GetIncludes(), cancellationToken)
+        query.Page, query.PerPage,
+        query.GetFilter(query.CaseSensitive),
+        query.GetSorters(),
+        query.GetIncludes(),
+        cancellationToken)
       : new BaseListCommand<TEntity>(
-        query.Page, query.PerPage, query.GetFilter(), query.GetIncludes(), cancellationToken, query.CaseSensitive);
+        query.Page, query.PerPage, query.GetFilter(query.CaseSensitive), query.GetIncludes(), cancellationToken);
 
     var result = command is BaseListSortedCommand<TEntity> sortedCommand
       ? await handler.HandleAsync(sortedCommand)
@@ -60,9 +64,14 @@ public abstract class BaseCrudController<TEntity, TValidator, TRepository, TComm
   {
     IListCommand command = query!.Sort != null
       ? new BaseListAllSortedCommand<TEntity>(
-        query.Page, query.PerPage, query.GetFilter(), query.GetSorters(), query.GetIncludes(), cancellationToken)
+        query.Page,
+        query.PerPage,
+        query.GetFilter(query.CaseSensitive),
+        query.GetSorters(),
+        query.GetIncludes(),
+        cancellationToken)
       : new BaseListAllCommand<TEntity>(
-        query.Page, query.PerPage, query.GetFilter(), query.GetIncludes(), cancellationToken);
+        query.Page, query.PerPage, query.GetFilter(query.CaseSensitive), query.GetIncludes(), cancellationToken);
 
     var result = command is BaseListAllSortedCommand<TEntity> sortedCommand
       ? await handler.HandleAsync(sortedCommand)

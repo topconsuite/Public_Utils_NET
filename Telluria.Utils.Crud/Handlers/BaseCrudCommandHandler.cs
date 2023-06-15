@@ -36,7 +36,12 @@ public abstract class
     try
     {
       var result = await _repository.ListAsync(
-        command.Page, command.PerPage, false, command.Where, command.Includes, command.CancellationToken);
+        command.Page,
+        command.PerPage,
+        false,
+        command.Where,
+        command.Includes,
+        command.CancellationToken);
 
       return new ListCommandResult<TEntity>(
         ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.LIST), result);
@@ -81,7 +86,12 @@ public abstract class
     try
     {
       var result = await _repository.ListAllAsync(
-        command.Page, command.PerPage, false, command.Where, command.Includes, command.CancellationToken);
+        command.Page,
+        command.PerPage,
+        false,
+        command.Where,
+        command.Includes,
+        command.CancellationToken);
 
       return new ListCommandResult<TEntity>(
         ECommandResultStatus.SUCCESS, GetSuccessMessage(EBaseCrudCommands.LIST_ALL), result);

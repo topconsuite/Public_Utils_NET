@@ -305,7 +305,8 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     IEnumerable<string> includeProperties,
     CancellationToken cancellationToken)
   {
-    return await ListAsync<TEntity>(page, perPage, tracking, filter, includeProperties, cancellationToken);
+    return await ListAsync<TEntity>(
+      page, perPage, tracking, filter, includeProperties, cancellationToken);
   }
 
   /// <summary>
@@ -361,7 +362,8 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     IEnumerable<string> includeProperties,
     CancellationToken cancellationToken)
   {
-    return await ListAllAsync<TEntity>(page, perPage, tracking, filter, includeProperties, cancellationToken);
+    return await ListAllAsync<TEntity>(
+      page, perPage, tracking, filter, includeProperties, cancellationToken);
   }
 
   /// <summary>
@@ -516,13 +518,6 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     }
 
     return await orderedQuery.IgnoreQueryFilters().PagedList(page, perPage, tracking, cancellationToken);
-  }
-
-  private static LambdaExpression GetExpression(Type type, string propertyName)
-  {
-    var parameterExp = Expression.Parameter(type, "type");
-    var propertyExp = Expression.Property(parameterExp, propertyName);
-    return Expression.Lambda(propertyExp, parameterExp);
   }
 
   #endregion

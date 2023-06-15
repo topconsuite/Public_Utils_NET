@@ -61,16 +61,19 @@ public abstract class BaseEntityQuery<TEntity, TGraphType, TValidator, TReposito
       .Argument<ListGraphType<WhereClausesInputType>>("where", "The where clause")
       .Argument<BooleanGraphType>("includeDeleted", "Include deleted items")
       .DefaultValue(false)
+      .Argument<BooleanGraphType>("caseSensitive", "Case sensitive search")
+      .DefaultValue(true)
       .ResolveAsync(async context =>
       {
         var page = context.GetArgument<uint>("page");
         var perPage = context.GetArgument<uint>("perPage");
+        var caseSensitive = context.GetArgument<bool>("caseSensitive");
         var includes = context.GetIncludes();
         var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
         var cancellationToken = context.CancellationToken;
 
         var where = context.GetArgument<List<WhereClauses>>("where");
-        var whereClauses = ParserWhereClauses.Parse<TEntity>(where ?? new List<WhereClauses>());
+        var whereClauses = ParserWhereClauses.Parse<TEntity>(where ?? new List<WhereClauses>(), caseSensitive);
 
         var response = context.GetArgument<bool>("includeDeleted")
           ? await handler.HandleAsync(new BaseListAllCommand<TEntity>(
@@ -93,17 +96,21 @@ public abstract class BaseEntityQuery<TEntity, TGraphType, TValidator, TReposito
       .Argument<IntGraphType>("perPage", "The page number")
       .Argument<ListGraphType<WhereClausesInputType>>("where", "The where clause")
       .Argument<BooleanGraphType>("includeDeleted", "Include deleted items")
+      .DefaultValue(false)
       .Argument<ListGraphType<SortInputType>>("sort", "Sort by field")
+      .Argument<BooleanGraphType>("caseSensitive", "Case sensitive search")
+      .DefaultValue(true)
       .ResolveAsync(async context =>
       {
         var page = context.GetArgument<uint>("page");
         var perPage = context.GetArgument<uint>("perPage");
+        var caseSensitive = context.GetArgument<bool>("caseSensitive");
         var includes = context.GetIncludes();
         var handler = context!.RequestServices!.GetRequiredService<TCommandHandler>();
         var cancellationToken = context.CancellationToken;
 
         var where = context.GetArgument<List<WhereClauses>>("where");
-        var whereClauses = ParserWhereClauses.Parse<TEntity>(where ?? new List<WhereClauses>());
+        var whereClauses = ParserWhereClauses.Parse<TEntity>(where ?? new List<WhereClauses>(), caseSensitive);
         var sort = context.GetArgument<List<SortClauses>>("sort");
 
         var response = context.GetArgument<bool>("includeDeleted")
