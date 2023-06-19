@@ -21,7 +21,7 @@ namespace Telluria.Utils.Crud.Repositories;
 public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
   where TEntity : BaseEntity
 {
-  private readonly DbContext _context;
+  protected readonly DbContext _context;
 
   protected BaseCrudRepository(DbContext context)
   {
