@@ -59,10 +59,8 @@ public abstract class BaseEntityQuery<TEntity, TGraphType, TValidator, TReposito
       .Argument<IntGraphType>("page", "The page number")
       .Argument<IntGraphType>("perPage", "The number of items per page")
       .Argument<ListGraphType<WhereClausesInputType>>("where", "The where clause")
-      .Argument<BooleanGraphType>("includeDeleted", "Include deleted items")
-      .DefaultValue(false)
-      .Argument<BooleanGraphType>("caseSensitive", "Case sensitive search")
-      .DefaultValue(true)
+      .Argument<BooleanGraphType>("includeDeleted", "Include deleted items", arg => arg.DefaultValue = false)
+      .Argument<BooleanGraphType>("caseSensitive", "Case sensitive search", arg => arg.DefaultValue = true)
       .ResolveAsync(async context =>
       {
         var page = context.GetArgument<uint>("page");
@@ -95,11 +93,9 @@ public abstract class BaseEntityQuery<TEntity, TGraphType, TValidator, TReposito
       .Argument<IntGraphType>("page", "The page number")
       .Argument<IntGraphType>("perPage", "The page number")
       .Argument<ListGraphType<WhereClausesInputType>>("where", "The where clause")
-      .Argument<BooleanGraphType>("includeDeleted", "Include deleted items")
-      .DefaultValue(false)
       .Argument<ListGraphType<SortClausesInputType>>("sort", "Sort by field")
-      .Argument<BooleanGraphType>("caseSensitive", "Case sensitive search")
-      .DefaultValue(true)
+      .Argument<BooleanGraphType>("includeDeleted", "Include deleted items", arg => arg.DefaultValue = false)
+      .Argument<BooleanGraphType>("caseSensitive", "Case sensitive search", arg => arg.DefaultValue = true)
       .ResolveAsync(async context =>
       {
         var page = context.GetArgument<uint>("page");
