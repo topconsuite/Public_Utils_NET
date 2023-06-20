@@ -88,7 +88,7 @@ public abstract class BaseEntityQuery<TEntity, TGraphType, TValidator, TReposito
       });
   }
 
-  protected void AddGetWithSortedPagination()
+  protected void AddBaseQuerySortedGetAll()
   {
     Field<ListCommandResultType<TEntity, TGraphType>>()
       .Name("GetAllWithSortedPagination")
