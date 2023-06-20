@@ -19,11 +19,11 @@ public class SortClauses
   public ESort SortDirection { get; set; }
 }
 
-public class SortInputType : InputObjectGraphType
+public class SortClausesInputType : InputObjectGraphType
 {
-  public SortInputType()
+  public SortClausesInputType()
   {
-    Name = "SortInputType";
+    Name = "SortClausesInputType";
     Description = "Sort input type";
 
     Field<StringGraphType>("field", "The property to filter");

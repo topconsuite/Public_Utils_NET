@@ -116,9 +116,9 @@ public class ProductType : BaseEntityGraphType<Product>
 {
   public ProductType()
   {
-    Field(x => x.Code, false);
-    Field(x => x.Name, false);
-    Field(x => x.Price, false);
+    Field(x => x.Code);
+    Field(x => x.Name);
+    Field(x => x.Price);
     Field(x => x.StockType, true);
   }
 }
@@ -127,9 +127,9 @@ public class ProductCreateInputType : BaseCreateInputType<Product>
 {
   public ProductCreateInputType()
   {
-    Field(x => x.Code, false);
-    Field(x => x.Name, false);
-    Field(x => x.Price, false);
+    Field(x => x.Code);
+    Field(x => x.Name);
+    Field(x => x.Price);
     Field(x => x.StockType, true);
   }
 }
@@ -163,6 +163,6 @@ public class ProductQuery : BaseEntityQuery<Product, ProductType, ProductValidat
   {
     AddBaseQueryGetById();
     AddBaseQueryGetAll();
-    AddGetWithSortedPagination();
+    AddBaseQuerySortedGetAll();
   }
 }
