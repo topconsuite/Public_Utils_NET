@@ -7,8 +7,8 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>crud, generic-crud, api, efcore</PackageTags>
     <Version>1.27.4</Version>
-    <AssemblyVersion>1.27.4</AssemblyVersion>
-    <FileVersion>1.27.4</FileVersion>
+    <AssemblyVersion>1.27.5</AssemblyVersion>
+    <FileVersion>1.27.5</FileVersion>
     <RepositoryUrl>https://gitlab.com/t3105/telluria-utils-.net.git</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
