@@ -23,12 +23,12 @@ public abstract class BaseCrudController<TEntity, TValidator, TRepository, TComm
   where TRepository : IBaseCrudRepository<TEntity>
   where TCommandHandler : IBaseCrudCommandHandler<TEntity, TValidator, TRepository>
 {
-  private bool IsNotFoundResult(ICommandResult result)
+  protected bool IsNotFoundResult(ICommandResult result)
   {
     return result.Status != ECommandResultStatus.SUCCESS && result.ErrorCode == EClientError.NOT_FOUND.ToString();
   }
 
-  private bool IsFailedResult(ICommandResult result)
+  protected bool IsFailedResult(ICommandResult result)
   {
     return result.Status != ECommandResultStatus.SUCCESS;
   }
