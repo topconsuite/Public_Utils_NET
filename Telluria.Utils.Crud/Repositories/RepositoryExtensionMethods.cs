@@ -25,7 +25,7 @@ namespace Telluria.Utils.Crud.Repositories
       CancellationToken cancellationToken)
       where TEntity : BaseEntity
     {
-      uint maxPageSize = 200;
+      uint maxPageSize = 500;
 
       if (page < 1) page = 1;
       if (perPage < 1 || perPage > maxPageSize) perPage = maxPageSize;
