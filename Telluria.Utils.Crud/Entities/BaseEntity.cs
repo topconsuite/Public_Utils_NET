@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Text.Json.Serialization;
 
 namespace Telluria.Utils.Crud.Entities
 {
-    public abstract class BaseEntity
+    public abstract class BaseEntity : IBaseEntity
     {
+        [JsonIgnore]
         public Guid TenantId { get; set; }
 
         public Guid Id { get; set; } = Guid.NewGuid();

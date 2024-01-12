@@ -1,10 +1,17 @@
 using Microsoft.EntityFrameworkCore;
+using Telluria.Utils.Crud.Entities;
+using Telluria.Utils.Crud.Services;
 
 namespace Telluria.Utils.Crud.Sample
 {
   public class AppDbContext : DbContext
   {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    private readonly Guid _tenantId;
+
+    public AppDbContext(ITenantService tenantService, DbContextOptions<AppDbContext> options) : base(options)
+    {
+      _tenantId = tenantService.TenantId;
+    }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
       => optionsBuilder.UseSqlite("DataSource=app.db;Cache=Shared");
@@ -12,6 +19,24 @@ namespace Telluria.Utils.Crud.Sample
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
       modelBuilder.ApplyConfiguration(new ProductMap());
+
+      modelBuilder.Entity<Product>().HasQueryFilter(a => a.TenantId == _tenantId);
+    }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+      foreach (var entry in ChangeTracker.Entries<IBaseEntity>().ToList())
+      {
+        switch (entry.State)
+        {
+          case EntityState.Added:
+          case EntityState.Modified:
+            entry.Entity.TenantId = _tenantId;
+            break;
+        }
+      }
+
+      return await base.SaveChangesAsync(cancellationToken);
     }
   }
 }
