@@ -20,9 +20,9 @@ namespace Telluria.Utils.Crud.Middlewares
       // Tenant Id from incoming request header
       context.Request.Headers.TryGetValue("X-TenantId", out var tenantFromHeader);
 
-      if (string.IsNullOrEmpty(tenantFromHeader) == false)
+      if (!string.IsNullOrEmpty(tenantFromHeader))
       {
-        tenantService.SetTenant(Guid.Parse(tenantFromHeader));
+        tenantService.TenantId = Guid.Parse(tenantFromHeader);
       }
 
       await _next(context);

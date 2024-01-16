@@ -1,4 +1,3 @@
-using GraphQL;
 using Microsoft.EntityFrameworkCore;
 using Telluria.Utils.Crud.Entities;
 using Telluria.Utils.Crud.Services;
@@ -26,18 +25,18 @@ namespace Telluria.Utils.Crud.Sample
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        foreach (var entry in ChangeTracker.Entries())
+      foreach (var entry in ChangeTracker.Entries())
+      {
+        switch (entry.State)
         {
-          switch (entry.State)
-          {
-            case EntityState.Added:
-            case EntityState.Modified:
-              entry.Property("TenantId").CurrentValue = _tenantId;
-              break;
-          }
+          case EntityState.Added:
+          case EntityState.Modified:
+            entry.Property("TenantId").CurrentValue = _tenantId;
+            break;
         }
-
-        return await base.SaveChangesAsync(cancellationToken);
       }
+
+      return await base.SaveChangesAsync(cancellationToken);
     }
+  }
 }

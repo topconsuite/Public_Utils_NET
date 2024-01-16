@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Telluria.Utils.Crud.Entities
 {
-    public abstract class BaseEntity : IBaseEntity
+    public abstract class BaseEntity
     {
         [JsonIgnore]
         public Guid TenantId { get; set; }
