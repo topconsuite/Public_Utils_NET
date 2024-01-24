@@ -4,7 +4,9 @@ using GraphQL.DataLoader;
 using GraphQL.Server;
 using GraphQL.Types;
 using Microsoft.EntityFrameworkCore;
+using Telluria.Utils.Crud.Middlewares;
 using Telluria.Utils.Crud.Sample;
+using Telluria.Utils.Crud.Services;
 using GQLDI = GraphQL.MicrosoftDI;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +24,7 @@ builder.Services.AddDbContext<AppDbContext>();
 builder.Services.AddScoped<DbContext, AppDbContext>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductCommandHandler, ProductCommandHandler>();
+builder.Services.AddScoped<ITenantService, TenantService>();
 
 // Add schema and register GraphQL
 builder.Services.AddSingleton<ISchema, GraphQLMainSchema>(services =>
@@ -51,8 +54,16 @@ app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
+app.UseMiddleware<TenantResolver>();
+
 app.MapControllers();
 
 app.UseGraphQL<ISchema>();
+
+using (var scope = app.Services.CreateScope())
+{
+  var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+  db.Database.Migrate();
+}
 
 app.Run();
