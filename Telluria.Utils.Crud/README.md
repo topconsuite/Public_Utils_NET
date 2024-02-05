@@ -166,7 +166,11 @@ using Microsoft.EntityFrameworkCore;
 
 public class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
+    private readonly Guid _tenantId;
+    
+    public AppDbContext(ITenantService tenantService, DbContextOptions<AppDbContext> options) : base(options) {
+        _tenantId = tenantService.TenantId;
+    }
 
     // In this sample we are using Sqlite, but you can use any database you want
     protected override void OnConfiguring(DbContextOptionsBuilder options)
