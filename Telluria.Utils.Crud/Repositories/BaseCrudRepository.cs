@@ -394,7 +394,7 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     if (filter != null)
       set = set.Where(filter);
 
-    return await set.IgnoreQueryFilters().PagedList(page, perPage, tracking, cancellationToken);
+    return await set.PagedList(page, perPage, tracking, cancellationToken);
   }
 
   #endregion
@@ -442,7 +442,7 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     if (filter != null)
       set = set.Where(filter);
 
-    return await set.IgnoreQueryFilters().Tracking(tracking).ToListAsync(cancellationToken);
+    return await set.Tracking(tracking).ToListAsync(cancellationToken);
   }
 
   #endregion
@@ -583,7 +583,7 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
 
     // Verify if sort is null, if it is, use default sort (CreatedAt descending).
     if (sort is not { Length: > 0 })
-      return await orderedQuery.IgnoreQueryFilters().PagedList(page, perPage, tracking, cancellationToken);
+      return await orderedQuery.PagedList(page, perPage, tracking, cancellationToken);
 
     for (var i = 0; i < sort.Length; i++)
     {
@@ -596,7 +596,7 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
         orderedQuery = orderedQuery.ThenBy(clause.Field, desc);
     }
 
-    return await orderedQuery.IgnoreQueryFilters().PagedList(page, perPage, tracking, cancellationToken);
+    return await orderedQuery.PagedList(page, perPage, tracking, cancellationToken);
   }
 
   #endregion
