@@ -73,24 +73,24 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity
   {
-    if (entities.Any(entity => entity.Id == Guid.Empty))
-      throw new Exception($"Id '{Guid.Empty}' not found");
+      if (entities.Any(entity => entity.Id == Guid.Empty))
+        throw new Exception($"Id '{Guid.Empty}' not found");
 
-    var entitiesIds = entities.Select(x => x.Id);
-    var oldEntities = await ListAsync<TSpecificEntity>(false, x => entitiesIds.Contains(x.Id), null, cancellationToken);
+      var entitiesIds = entities.Select(x => x.Id);
+      var oldEntities = await ListAsync<TSpecificEntity>(false, x => entitiesIds.Contains(x.Id), null, cancellationToken);
 
-    foreach (var entity in entities)
-    {
-      var oldEntity = oldEntities.FirstOrDefault(x => x.Id == entity.Id);
+      foreach (var entity in entities)
+      {
+        var oldEntity = oldEntities.FirstOrDefault(x => x.Id == entity.Id);
 
-      if (oldEntity == null)
-        throw new Exception($"Id '{entity.Id}' not found");
+        if (oldEntity == null)
+          throw new Exception($"Id '{entity.Id}' not found");
 
-      entity.CreatedAt = oldEntity.CreatedAt;
-      entity.UpdatedAt = oldEntity.UpdatedAt;
-      entity.DeletedAt = oldEntity.DeletedAt;
-      entity.Deleted = oldEntity.Deleted;
-    }
+        entity.CreatedAt = oldEntity.CreatedAt;
+        entity.UpdatedAt = oldEntity.UpdatedAt;
+        entity.DeletedAt = oldEntity.DeletedAt;
+        entity.Deleted = oldEntity.Deleted;
+      }
   }
 
   #region CREATE (ADD)
@@ -177,12 +177,12 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     Guid id, bool tracking, IEnumerable<string> includeProperties, CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity
   {
-    var set = DbSet<TSpecificEntity>().AsQueryable();
+      var set = DbSet<TSpecificEntity>().AsQueryable();
 
-    set = set.AddIncludes(includeProperties);
-    set = set.Where(t => t.Id == id);
+      set = set.AddIncludes(includeProperties);
+      set = set.Where(t => t.Id == id);
 
-    return await set.Tracking(tracking).FirstOrDefaultAsync(cancellationToken);
+      return await set.Tracking(tracking).FirstOrDefaultAsync(cancellationToken);
   }
 
   #endregion
@@ -224,14 +224,14 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity
   {
-    var set = DbSet<TSpecificEntity>().AsQueryable();
+      var set = DbSet<TSpecificEntity>().AsQueryable();
 
-    set = set.AddIncludes(includeProperties);
+      set = set.AddIncludes(includeProperties);
 
-    if (filter != null)
-      set = set.Where(filter);
+      if (filter != null)
+        set = set.Where(filter);
 
-    return await set.Tracking(tracking).FirstOrDefaultAsync(cancellationToken);
+      return await set.Tracking(tracking).FirstOrDefaultAsync(cancellationToken);
   }
 
   #endregion
@@ -245,14 +245,16 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
   /// <param name="filter"> Filter expression. </param>
   /// <param name="includeProperties"> Include properties. </param>
   /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <param name="ignoreQueryFilters"> Iguinore query filters. </param>
   /// <returns> The found entities. </returns>
   public virtual async Task<IEnumerable<TEntity>> ListAsync(
     bool tracking,
     Expression<Func<TEntity, bool>> filter,
     IEnumerable<string> includeProperties,
-    CancellationToken cancellationToken)
+    CancellationToken cancellationToken,
+    bool ignoreQueryFilters = false)
   {
-    return await ListAsync<TEntity>(tracking, filter, includeProperties, cancellationToken);
+    return await ListAsync<TEntity>(tracking, filter, includeProperties, cancellationToken, ignoreQueryFilters);
   }
 
   /// <summary>
@@ -264,23 +266,28 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
   /// <param name="filter"> Filter expression. </param>
   /// <param name="includeProperties"> Include properties. </param>
   /// <param name="cancellationToken"> Cancellation token. </param>
+  /// <param name="ignoreQueryFilters"> Iguinore query filters. </param>
   /// <typeparam name="TSpecificEntity"> Specific entity. </typeparam>
   /// <returns> The found entities. </returns>
   public virtual async Task<IEnumerable<TSpecificEntity>> ListAsync<TSpecificEntity>(
     bool tracking,
     Expression<Func<TSpecificEntity, bool>> filter,
     IEnumerable<string> includeProperties,
-    CancellationToken cancellationToken)
+    CancellationToken cancellationToken,
+    bool ignoreQueryFilters = false)
     where TSpecificEntity : BaseEntity
   {
-    var set = DbSet<TSpecificEntity>().AsQueryable();
+      var set = DbSet<TSpecificEntity>().AsQueryable();
 
-    set = set.AddIncludes(includeProperties);
+      set = set.AddIncludes(includeProperties);
 
-    if (filter != null)
-      set = set.Where(filter);
+      if (filter != null)
+        set = set.Where(filter);
 
-    return await set.Tracking(tracking).ToListAsync(cancellationToken);
+      if (ignoreQueryFilters)
+        return await set.IgnoreQueryFilters().Tracking(tracking).ToListAsync(cancellationToken);
+
+      return await set.Tracking(tracking).ToListAsync(cancellationToken);
   }
 
   #endregion
@@ -640,13 +647,13 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity
   {
-    await ValidateExistence(entities, cancellationToken);
+      await ValidateExistence(entities, cancellationToken);
 
-    var now = DateTime.Now.ToUniversalTime();
+      var now = DateTime.Now.ToUniversalTime();
 
-    foreach (var entity in entities) entity.UpdatedAt = now;
+      foreach (var entity in entities) entity.UpdatedAt = now;
 
-    await DbSet<TSpecificEntity>().UpdateRangeAsync(entities, cancellationToken);
+      await DbSet<TSpecificEntity>().UpdateRangeAsync(entities, cancellationToken);
   }
 
   #endregion
@@ -708,53 +715,6 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     }
 
     await DbSet<TSpecificEntity>().UpdateRangeAsync(entities, cancellationToken);
-  }
-
-  #endregion
-  #region UPSERT
-
-  /// <summary>
-  ///   TRANSFER
-  ///   Calls the function responsible for implementation to ensure correct required inheritance.
-  ///   PS: Just one entity.
-  /// </summary>
-  /// <param name="entity"> Entity. </param>
-  /// <param name="match"> Match condition. </param>
-  /// <param name="updater"> Updater data. </param>
-  /// <param name="cancellationToken"> Cancellation token. </param>
-  /// <returns> Task. </returns>
-  public virtual async Task UpsertAsync(
-    TEntity entity,
-    Expression<Func<TEntity, object>> match,
-    Expression<Func<TEntity, TEntity, TEntity>> updater,
-    CancellationToken cancellationToken)
-  {
-    await UpsertAsync<TEntity>(entity, match, updater, cancellationToken);
-  }
-
-  /// <summary>
-  ///   Upsert entity.
-  ///   Just one entity.
-  /// </summary>
-  /// <param name="entity"> Entity. </param>
-  /// <param name="match"> Match condition. </param>
-  /// <param name="updater"> Updater data. </param>
-  /// <param name="cancellationToken"> Cancellation token. </param>
-  /// <typeparam name="TSpecificEntity"> Specific entity. </typeparam>
-  /// <returns> Task. </returns>
-  public virtual async Task UpsertAsync<TSpecificEntity>(
-    TEntity entity,
-    Expression<Func<TEntity, object>> match,
-    Expression<Func<TEntity, TEntity, TEntity>> updater,
-    CancellationToken cancellationToken)
-    where TSpecificEntity : BaseEntity
-  {
-    var now = DateTime.Now.ToUniversalTime();
-
-    entity.CreatedAt = now;
-    entity.UpdatedAt = now;
-
-    await DbSet<TEntity>().Upsert(entity).On(match).WhenMatched(updater).RunAsync(cancellationToken);
   }
 
   #endregion
