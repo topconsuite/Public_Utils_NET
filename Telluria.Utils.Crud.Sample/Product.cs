@@ -8,6 +8,7 @@ using Telluria.Utils.Crud.GraphQL.Types;
 using Telluria.Utils.Crud.Handlers;
 using Telluria.Utils.Crud.Mapping;
 using Telluria.Utils.Crud.Repositories;
+using Telluria.Utils.Crud.Services;
 using Telluria.Utils.Crud.Validation;
 
 namespace Telluria.Utils.Crud.Sample;
@@ -110,6 +111,9 @@ public class ProductCommandHandler : BaseCrudCommandHandler<Product, ProductVali
 public class
   ProductsController : BaseCrudController<Product, ProductValidator, IProductRepository, IProductCommandHandler>
 {
+  public ProductsController(ITenantService tenantService) : base(tenantService)
+  {
+  }
 }
 
 public class ProductType : BaseEntityGraphType<Product>

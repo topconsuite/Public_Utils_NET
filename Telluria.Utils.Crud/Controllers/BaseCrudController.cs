@@ -11,6 +11,7 @@ using Telluria.Utils.Crud.Errors;
 using Telluria.Utils.Crud.Handlers;
 using Telluria.Utils.Crud.QueryFilters;
 using Telluria.Utils.Crud.Repositories;
+using Telluria.Utils.Crud.Services;
 using Telluria.Utils.Crud.Validation;
 
 namespace Telluria.Utils.Crud.Controllers;
@@ -23,6 +24,13 @@ public abstract class BaseCrudController<TEntity, TValidator, TRepository, TComm
   where TRepository : IBaseCrudRepository<TEntity>
   where TCommandHandler : IBaseCrudCommandHandler<TEntity, TValidator, TRepository>
 {
+  private readonly ITenantService _tenantService;
+
+  protected BaseCrudController(ITenantService tenantService)
+  {
+    _tenantService = tenantService;
+  }
+
   [NonAction]
   public bool IsNotFoundResult(ICommandResult result)
   {
@@ -153,6 +161,7 @@ public abstract class BaseCrudController<TEntity, TValidator, TRepository, TComm
     [FromQuery] IncludeRequestQuery query = null,
     CancellationToken cancellationToken = default)
   {
+    entity.TenantId = _tenantService.TenantId;
     entity.Id = id;
 
     var command = new BaseUpdateCommand<TEntity>(entity, query.GetIncludes(), cancellationToken);
