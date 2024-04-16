@@ -57,13 +57,15 @@ public interface IBaseCrudRepository<TEntity>
     bool tracking,
     Expression<Func<TEntity, bool>> filter,
     IEnumerable<string> includeProperties,
-    CancellationToken cancellationToken);
+    CancellationToken cancellationToken,
+    bool ignoreQueryFilters = false);
 
   Task<IEnumerable<TSpecificEntity>> ListAsync<TSpecificEntity>(
     bool tracking,
     Expression<Func<TSpecificEntity, bool>> filter,
     IEnumerable<string> includeProperties,
-    CancellationToken cancellationToken)
+    CancellationToken cancellationToken,
+    bool ignoreQueryFilters = false)
     where TSpecificEntity : BaseEntity;
 
   #endregion
@@ -184,23 +186,7 @@ public interface IBaseCrudRepository<TEntity>
   Task SoftDeleteAsync<TSpecificEntity>(IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity;
 
-  #endregion
-  #region UPSERT
-
-  Task UpsertAsync(
-    TEntity entity,
-    Expression<Func<TEntity, object>> match,
-    Expression<Func<TEntity, TEntity, TEntity>> updater,
-    CancellationToken cancellationToken);
-
-  Task UpsertAsync<TSpecificEntity>(
-    TEntity entity,
-    Expression<Func<TEntity, object>> match,
-    Expression<Func<TEntity, TEntity, TEntity>> updater,
-    CancellationToken cancellationToken)
-    where TSpecificEntity : BaseEntity;
-
-  #endregion
+  #endregion  
   #region DELETE
 
   Task RemoveAsync(TEntity entity, CancellationToken cancellationToken);
