@@ -13,6 +13,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="10.1.1" />
+    <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.17.4" />
     <PackageReference Include="LinqKit.Core" Version="1.1.27" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="6.0.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="6.0.0" />
