@@ -10,28 +10,13 @@ namespace Telluria.Utils.Crud.Services;
 public class TransactionService : ITransactionService
 {
   private readonly IMessageBrokerService _messageService;
-
-  private TransactionScope _transactionScope;
   private List<IntegrationMessage> _messages;
-  private bool _disposed = false;
-  private bool _completed = false;
 
-  public bool HasTransaction => _transactionScope != null;
+  public bool HasTransaction { get; set; }
 
   public TransactionService(IMessageBrokerService messageService)
   {
-    _transactionScope = null;
     _messageService = messageService;
-    _messages = new List<IntegrationMessage>();
-  }
-
-  public TransactionScope BeginTransaction(TransactionScopeAsyncFlowOption option = TransactionScopeAsyncFlowOption.Enabled)
-  {
-    if (_transactionScope != null)
-      throw new Exception("Transaction already started");
-
-    _messages = new List<IntegrationMessage>();
-    return _transactionScope = new TransactionScope(option);
   }
 
   public void AddChange(IntegrationMessage message)
@@ -39,33 +24,76 @@ public class TransactionService : ITransactionService
     _messages.Add(message);
   }
 
-  public void Complete()
+  private async Task SendMessageAsync()
   {
-    if (!_completed)
+    foreach (var message in _messages)
     {
-      _transactionScope.Complete();
-      _completed = true;
+      await _messageService.SendIntegrationMessageAsync(message);
     }
   }
 
-  public async Task SendMessageAsync()
+  public async Task ExecuteTransactionAsync(Func<Task> transactionalOperation, TransactionScopeAsyncFlowOption option = TransactionScopeAsyncFlowOption.Enabled)
   {
-    if (_completed)
+    if (HasTransaction)
+      throw new Exception("Não é permitido o encadeamento de transações!");
+
+    var transactionOptions = new TransactionOptions
     {
-      foreach (var message in _messages)
+      Timeout = TimeSpan.FromHours(1)
+    };
+
+    using (var scope = new TransactionScope(TransactionScopeOption.RequiresNew, transactionOptions, option))
+    {
+      HasTransaction = true;
+
+      _messages = new List<IntegrationMessage>();
+
+      try
       {
-        await _messageService.SendIntegrationMessageAsync(message);
+        // Execute the transactional operations
+        await transactionalOperation();
+
+        // If all operations were successful, complete the transaction
+        scope.Complete();
+      }
+      finally
+      {
+        HasTransaction = false;
+
+        Task.Run(SendMessageAsync);
       }
     }
   }
 
-  public void Dispose()
+  public async Task<T> ExecuteTransactionAsync<T>(Func<Task<T>> transactionalOperation, TransactionScopeAsyncFlowOption option = TransactionScopeAsyncFlowOption.Enabled)
   {
-    if (!_disposed && !_completed && _transactionScope != null)
-    {
-      _transactionScope.Dispose();
+    if (HasTransaction)
+      throw new Exception("Não é permitido o encadeamento de transações!");
 
-      _disposed = true;
+    using (var scope = new TransactionScope(TransactionScopeOption.RequiresNew, option))
+    {
+      HasTransaction = true;
+
+      _messages = new List<IntegrationMessage>();
+
+      T result;
+
+      try
+      {
+        // Execute the transactional operations
+        result = await transactionalOperation();
+
+        // If all operations were successful, complete the transaction
+        scope.Complete();
+      }
+      finally
+      {
+        HasTransaction = false;
+
+        Task.Run(SendMessageAsync);
+      }
+
+      return result;
     }
   }
 }

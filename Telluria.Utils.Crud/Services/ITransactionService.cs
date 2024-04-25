@@ -5,12 +5,10 @@ using Telluria.Utils.Crud.Entities;
 
 namespace Telluria.Utils.Crud.Services;
 
-public interface ITransactionService : IDisposable
+public interface ITransactionService
 {
-  bool HasTransaction { get; }
+  bool HasTransaction { get; set; }
   void AddChange(IntegrationMessage message);
-  TransactionScope BeginTransaction(TransactionScopeAsyncFlowOption option = TransactionScopeAsyncFlowOption.Enabled);
-  Task SendMessageAsync();
-  void Complete();
-  void Dispose();
+  Task ExecuteTransactionAsync(Func<Task> transactionalOperation, TransactionScopeAsyncFlowOption option = TransactionScopeAsyncFlowOption.Enabled);
+  Task<T> ExecuteTransactionAsync<T>(Func<Task<T>> transactionalOperation, TransactionScopeAsyncFlowOption option = TransactionScopeAsyncFlowOption.Enabled);
 }
