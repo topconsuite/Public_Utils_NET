@@ -67,7 +67,7 @@ public interface IProductRepository : IBaseCrudRepository<Product>
 // Data.Repositories
 public class ProductRepository : BaseCrudRepository<Product>, IProductRepository
 {
-  public ProductRepository(DbContext context) : base(context)
+  public ProductRepository(ITransactionService transactionService, DbContext context) : base(transactionService, context)
   {
   }
 }
@@ -81,7 +81,7 @@ public interface IProductCommandHandler : IBaseCrudCommandHandler<Product, Produ
 public class ProductCommandHandler : BaseCrudCommandHandler<Product, ProductValidator, IProductRepository>,
   IProductCommandHandler
 {
-  public ProductCommandHandler(IProductRepository repository) : base(repository)
+  public ProductCommandHandler(ITransactionService transactionService, IProductRepository repository) : base(transactionService, repository)
   {
   }
 
