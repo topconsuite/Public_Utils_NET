@@ -8,6 +8,7 @@ using Telluria.Utils.Crud.Commands.BaseCommands;
 using Telluria.Utils.Crud.Entities;
 using Telluria.Utils.Crud.Errors;
 using Telluria.Utils.Crud.Repositories;
+using Telluria.Utils.Crud.Services;
 using Telluria.Utils.Crud.Validation;
 
 namespace Telluria.Utils.Crud.Handlers;
@@ -18,11 +19,14 @@ public abstract class
   where TValidator : BaseEntityValidator<TEntity>, new()
   where TRepository : IBaseCrudRepository<TEntity>
 {
+
+  protected readonly ITransactionService _transactionService;
   protected readonly TRepository _repository;
 
-  protected BaseCrudCommandHandler(TRepository repository)
+  protected BaseCrudCommandHandler(ITransactionService transactionService,  TRepository repository)
   {
     _repository = repository;
+    _transactionService = transactionService;
   }
 
   /// <summary>

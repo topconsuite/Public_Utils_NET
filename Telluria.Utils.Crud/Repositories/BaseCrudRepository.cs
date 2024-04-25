@@ -7,13 +7,13 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using Telluria.Utils.Crud.Constants.Enums;
 using Telluria.Utils.Crud.Entities;
 using Telluria.Utils.Crud.GraphQL.InputTypes;
 using Telluria.Utils.Crud.Helpers;
 using Telluria.Utils.Crud.Lists;
+using Telluria.Utils.Crud.Services;
 
 namespace Telluria.Utils.Crud.Repositories;
 
@@ -21,10 +21,12 @@ namespace Telluria.Utils.Crud.Repositories;
 public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
   where TEntity : BaseEntity
 {
+  private ITransactionService _transactionService;
   protected readonly DbContext _context;
 
-  protected BaseCrudRepository(DbContext context)
+  protected BaseCrudRepository(ITransactionService transactionService, DbContext context)
   {
+    _transactionService = transactionService;
     _context = context;
   }
 
@@ -708,11 +710,11 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     }
 
     // Verify if have foreign key conflicts to continue or not with soft delete
-    using (new TransactionScope(TransactionScopeOption.RequiresNew, TransactionScopeAsyncFlowOption.Enabled))
+    await _transactionService.ExecuteTransactionAsync(async () =>
     {
       await DbSet<TSpecificEntity>().RemoveRangeAsync(entities, cancellationToken);
       await Commit(cancellationToken);
-    }
+    });
 
     await DbSet<TSpecificEntity>().UpdateRangeAsync(entities, cancellationToken);
   }
