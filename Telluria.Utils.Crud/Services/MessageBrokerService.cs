@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using Telluria.Utils.Crud.Entities;
@@ -34,7 +35,13 @@ public class MessageBrokerService : IMessageBrokerService
 
     var sender = client.CreateSender(_integrationTopic);
 
-    var messageBody = JsonSerializer.Serialize(content);
+    var options = new JsonSerializerOptions
+    {
+      ReferenceHandler = ReferenceHandler.Preserve,
+      WriteIndented = true // para melhor legibilidade do JSON
+    };
+
+    var messageBody = JsonSerializer.Serialize(content, options);
 
     var message = new ServiceBusMessage(Encoding.UTF8.GetBytes(messageBody))
     {
