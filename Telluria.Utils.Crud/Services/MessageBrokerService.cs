@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -53,5 +54,38 @@ public class MessageBrokerService : IMessageBrokerService
     message.ApplicationProperties.Add("MessageType", content.Entity);
 
     await sender.SendMessageAsync(message);
+  }
+
+  public async Task SendIntegrationMessageAsync(List<IntegrationMessage> integrationMessages)
+  {
+    await using var client = new ServiceBusClient(_connectionString);
+
+    var sender = client.CreateSender(_integrationTopic);
+
+    var options = new JsonSerializerOptions
+    {
+      ReferenceHandler = ReferenceHandler.Preserve,
+      WriteIndented = true // para melhor legibilidade do JSON
+    };
+
+    var brokerMessages = new List<ServiceBusMessage>();
+
+    foreach (var integrationMessage in integrationMessages)
+    {
+      var messageBody = JsonSerializer.Serialize(integrationMessage, options);
+
+      var brokerMessage = new ServiceBusMessage(Encoding.UTF8.GetBytes(messageBody))
+      {
+        MessageId = Guid.NewGuid().ToString(),
+        ContentType = "application/json",
+      };
+
+      brokerMessage.ApplicationProperties.Add("TenantId", integrationMessage.TenantId);
+      brokerMessage.ApplicationProperties.Add("MessageType", integrationMessage.Entity);
+
+      brokerMessages.Add(brokerMessage);
+    }
+
+    await sender.SendMessagesAsync(brokerMessages);
   }
 }
