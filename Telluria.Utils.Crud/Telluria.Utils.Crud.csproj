@@ -6,9 +6,9 @@
     <Description>Generic library for easy creation of CRUD rest APIs with dotnet and EntityFrameworkCore.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageTags>crud, generic-crud, api, efcore</PackageTags>
-    <Version>2.0.8</Version>
-    <AssemblyVersion>2.0.8</AssemblyVersion>
-    <FileVersion>2.0.8</FileVersion>
+    <Version>2.0.9</Version>
+    <AssemblyVersion>2.0.9</AssemblyVersion>
+    <FileVersion>2.0.9</FileVersion>
     <RepositoryUrl>https://gitlab.com/t3105/telluria-utils-.net.git</RepositoryUrl>
   </PropertyGroup>
   <ItemGroup>
