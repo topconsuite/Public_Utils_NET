@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
@@ -90,25 +91,55 @@ public static class ExpressionParser
   }
 
   public static Expression<Func<T, bool>> ConvertToLambda<T>(string propertyName, string propertyValue, string method,
-    bool caseSentitive = true)
+    bool caseSensitive = true)
   {
-    var parameter = Expression.Parameter(typeof(T), "t");
-    var property = GetProperty(parameter, propertyName);
+    Expression<Func<T, bool>> lambda = null;
+    var parentParameter = Expression.Parameter(typeof(T), "t");
+    var parentProperty = Expression.Property(parentParameter, propertyName.Split(".").First());
+
+    if (typeof(IEnumerable).IsAssignableFrom(parentProperty.Type) && parentProperty.Type.IsGenericType)
+    {
+      var childType = parentProperty.Type.GetGenericArguments()[0];
+      var childParameter = Expression.Parameter(childType, "c");
+      var childProperty = Expression.Property(childParameter, propertyName.Split(".").Last());
+
+      lambda = GetLambda<T>(childProperty, parentProperty, childParameter, parentParameter, propertyValue, method, caseSensitive);
+    }
+    else
+    {
+      var property = GetProperty(parentParameter, propertyName);
+
+      lambda = GetLambda<T>(property, property, parentParameter, parentParameter, propertyValue, method, caseSensitive);
+    }
+
+    return lambda;
+  }
+
+  private static Expression<Func<T, bool>> GetLambda<T>(
+    Expression property,
+    Expression parentProperty,
+    ParameterExpression childParameter,
+    ParameterExpression parentParameter,
+    string propertyValue,
+    string method,
+    bool caseSensitive
+    )
+  {
+    Expression comparison = null;
+    Expression<Func<T, bool>> lambdaIn = null;
+
     var value = Parse(propertyValue, property.Type, method.Equals("In"));
     var filterValue = !method.Equals("In") ? Expression.Constant(value, property.Type) : Expression.Constant(value);
-    Expression comparation = null;
-
-    Expression<Func<T, bool>> lambdaIn = null;
 
     // Performs the comparison according to the operation
     switch (method)
     {
       case "Equal":
-        comparation = Expression.Equal(property, filterValue);
+        comparison = Expression.Equal(property, filterValue);
 
-        if (!caseSentitive && property.Type == typeof(string))
+        if (!caseSensitive && property.Type == typeof(string))
         {
-          comparation = Expression.Equal(
+          comparison = Expression.Equal(
             Expression.Call(property, "ToLower", null),
             Expression.Call(filterValue, "ToLower", null)
           );
@@ -116,23 +147,23 @@ public static class ExpressionParser
 
         break;
       case "GreaterThanOrEqual":
-        comparation = Expression.GreaterThanOrEqual(property, filterValue);
+        comparison = Expression.GreaterThanOrEqual(property, filterValue);
         break;
       case "LessThanOrEqual":
-        comparation = Expression.LessThanOrEqual(property, filterValue);
+        comparison = Expression.LessThanOrEqual(property, filterValue);
         break;
       case "GreaterThan":
-        comparation = Expression.GreaterThan(property, filterValue);
+        comparison = Expression.GreaterThan(property, filterValue);
         break;
       case "LessThan":
-        comparation = Expression.LessThan(property, filterValue);
+        comparison = Expression.LessThan(property, filterValue);
         break;
       case "Contains":
-        comparation = Expression.Call(property, "Contains", null, filterValue);
+        comparison = Expression.Call(property, "Contains", null, filterValue);
 
-        if (!caseSentitive && property.Type == typeof(string))
+        if (!caseSensitive && property.Type == typeof(string))
         {
-          comparation = Expression.Call(
+          comparison = Expression.Call(
             Expression.Call(property, "ToLower", null),
             "Contains",
             null,
@@ -148,26 +179,40 @@ public static class ExpressionParser
         {
           filterValue = Expression.Constant(item, property.Type);
 
-          if (!caseSentitive && property.Type == typeof(string))
+          if (!caseSensitive && property.Type == typeof(string))
           {
-            comparation = Expression.Equal(
+            comparison = Expression.Equal(
               Expression.Call(property, "ToLower", null),
               Expression.Call(filterValue, "ToLower", null)
             );
           }
           else
           {
-            comparation = Expression.Equal(property, filterValue);
+            comparison = Expression.Equal(property, filterValue);
           }
 
-          lambdaIn = lambdaIn.Or(Expression.Lambda<Func<T, bool>>(comparation, parameter));
+          // T é o type do produto (parent)
+          // Essa funcão é executada em cada objeto da array de tags (child)
+          // Type da expression precisa ser childParameter.Type
+          // Não funciona porque o childParameter.Type é definido em runtime e não em compile time
+          lambdaIn = lambdaIn.Or(Expression.Lambda<Func<T, bool>>(comparison, childParameter));
         }
 
         break;
     }
 
+    if (typeof(IEnumerable).IsAssignableFrom(parentProperty.Type) && parentProperty.Type.IsGenericType)
+    {
+      var listFilterLambda = Expression.Lambda(comparison, childParameter);
+
+      var anyMethod = typeof(Enumerable).GetMethods().First(m => m.Name == "Any" && m.GetParameters().Length == 2)
+        .MakeGenericMethod(childParameter.Type);
+
+      comparison = Expression.Call(anyMethod, parentProperty, lambdaIn ?? listFilterLambda);
+    }
+
     // Create the lambda expression
-    var lambda = lambdaIn ?? Expression.Lambda<Func<T, bool>>(comparation, parameter);
+    var lambda = lambdaIn ?? Expression.Lambda<Func<T, bool>>(comparison, parentParameter);
 
     return lambda;
   }
