@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Security.AccessControl;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -21,7 +22,7 @@ namespace Telluria.Utils.Crud.Repositories;
 public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
   where TEntity : BaseEntity
 {
-  private ITransactionService _transactionService;
+  private readonly ITransactionService _transactionService;
   protected readonly DbContext _context;
 
   protected BaseCrudRepository(ITransactionService transactionService, DbContext context)
@@ -653,7 +654,8 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
 
       var now = DateTime.Now.ToUniversalTime();
 
-      foreach (var entity in entities) entity.UpdatedAt = now;
+      foreach (var entity in entities)
+        entity.UpdatedAt = now;
 
       await DbSet<TSpecificEntity>().UpdateRangeAsync(entities, cancellationToken);
   }

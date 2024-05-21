@@ -21,16 +21,18 @@ public class MessageBrokerService : IMessageBrokerService
     _integrationTopic = integrationTopic;
   }
 
-  public async Task SendMessageAsync(string queueOrTopicName, string content)
+  public async Task SendMessageAsync(string queueOrTopicName, string body)
   {
     await using var client = new ServiceBusClient(_connectionString);
 
     var sender = client.CreateSender(queueOrTopicName);
 
-    await sender.SendMessageAsync(new ServiceBusMessage(content));
+    var brokerMessage = new ServiceBusMessage(body);
+
+    await sender.SendMessageAsync(brokerMessage);
   }
 
-  public async Task SendIntegrationMessageAsync(IntegrationMessage content)
+  public async Task SendIntegrationMessageAsync(IntegrationMessage integrationMessage)
   {
     await using var client = new ServiceBusClient(_connectionString);
 
@@ -39,21 +41,21 @@ public class MessageBrokerService : IMessageBrokerService
     var options = new JsonSerializerOptions
     {
       ReferenceHandler = ReferenceHandler.Preserve,
-      WriteIndented = true // para melhor legibilidade do JSON
+      WriteIndented = true
     };
 
-    var messageBody = JsonSerializer.Serialize(content, options);
+    var messageBody = JsonSerializer.Serialize(integrationMessage, options);
 
-    var message = new ServiceBusMessage(Encoding.UTF8.GetBytes(messageBody))
+    var brokerMessage = new ServiceBusMessage(Encoding.UTF8.GetBytes(messageBody))
     {
       MessageId = Guid.NewGuid().ToString(),
       ContentType = "application/json",
     };
 
-    message.ApplicationProperties.Add("TenantId", content.TenantId);
-    message.ApplicationProperties.Add("MessageType", content.Entity);
+    brokerMessage.ApplicationProperties.Add("TenantId", integrationMessage.TenantId);
+    brokerMessage.ApplicationProperties.Add("MessageType", integrationMessage.Entity);
 
-    await sender.SendMessageAsync(message);
+    await sender.SendMessageAsync(brokerMessage);
   }
 
   public async Task SendIntegrationMessageAsync(List<IntegrationMessage> integrationMessages)
@@ -65,7 +67,7 @@ public class MessageBrokerService : IMessageBrokerService
     var options = new JsonSerializerOptions
     {
       ReferenceHandler = ReferenceHandler.Preserve,
-      WriteIndented = true // para melhor legibilidade do JSON
+      WriteIndented = true
     };
 
     var brokerMessages = new List<ServiceBusMessage>();
