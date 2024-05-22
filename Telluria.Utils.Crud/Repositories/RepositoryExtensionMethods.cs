@@ -69,7 +69,7 @@ namespace Telluria.Utils.Crud.Repositories
       CancellationToken cancellationToken)
       where TEntity : BaseEntity
     {
-      await source.UpdateRangeAsync(entities, cancellationToken);
+      await Task.Run(() => source.UpdateRange(entities), cancellationToken);
     }
 
     public static async Task RemoveRangeAsync<TEntity>(
@@ -78,7 +78,7 @@ namespace Telluria.Utils.Crud.Repositories
       CancellationToken cancellationToken)
       where TEntity : BaseEntity
     {
-      await source.RemoveRangeAsync(entities, cancellationToken);
+      await Task.Run(() => source.RemoveRange(entities), cancellationToken);
     }
   }
 }
