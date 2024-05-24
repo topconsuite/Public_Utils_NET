@@ -5,9 +5,9 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Security.AccessControl;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Transactions;
 using Microsoft.EntityFrameworkCore;
 using Telluria.Utils.Crud.Constants.Enums;
 using Telluria.Utils.Crud.Entities;
@@ -712,11 +712,11 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     }
 
     // Verify if have foreign key conflicts to continue or not with soft delete
-    await _transactionService.ExecuteTransactionAsync(async () =>
+    using (new TransactionScope(TransactionScopeOption.RequiresNew, TransactionScopeAsyncFlowOption.Enabled))
     {
       await DbSet<TSpecificEntity>().RemoveRangeAsync(entities, cancellationToken);
       await Commit(cancellationToken);
-    });
+    }
 
     await DbSet<TSpecificEntity>().UpdateRangeAsync(entities, cancellationToken);
   }
