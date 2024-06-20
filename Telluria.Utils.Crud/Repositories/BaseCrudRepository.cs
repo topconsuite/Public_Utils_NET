@@ -9,6 +9,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Telluria.Utils.Crud.Constants.Enums;
 using Telluria.Utils.Crud.Entities;
 using Telluria.Utils.Crud.GraphQL.InputTypes;
@@ -22,12 +23,17 @@ namespace Telluria.Utils.Crud.Repositories;
 public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
   where TEntity : BaseEntity
 {
-  private readonly ITransactionService _transactionService;
+  private readonly IServiceProvider _provider;
+
+  protected readonly ITenantService _tenantService;
   protected readonly DbContext _context;
 
-  protected BaseCrudRepository(ITransactionService transactionService, DbContext context)
+  protected BaseCrudRepository(IServiceProvider provider, DbContext context)
   {
-    _transactionService = transactionService;
+    _provider = provider;
+
+    _tenantService = provider.GetRequiredService<ITenantService>();
+
     _context = context;
   }
 
@@ -48,6 +54,7 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     catch (Exception e)
     {
       await _context.DisposeAsync();
+
       shouldThrow = e;
     }
 
@@ -62,7 +69,14 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
   private DbSet<TSpecificEntity> DbSet<TSpecificEntity>()
     where TSpecificEntity : BaseEntity
   {
-    return _context.Set<TSpecificEntity>();
+    var entity = _context.Set<TSpecificEntity>();
+
+    var baseEntity = (entity as BaseEntity);
+
+    if(baseEntity != null)
+      baseEntity.TenantId = _tenantService.TenantId;
+
+    return entity;
   }
 
   /// <summary>
@@ -139,6 +153,8 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
 
     foreach (var entity in entities)
     {
+      entity.TenantId = _tenantService.TenantId;
+
       entity.CreatedAt = now;
       entity.UpdatedAt = now;
       entity.DeletedAt = null;
@@ -183,7 +199,8 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
       var set = DbSet<TSpecificEntity>().AsQueryable();
 
       set = set.AddIncludes(includeProperties);
-      set = set.Where(t => t.Id == id);
+
+      set = set.Where(t => t.TenantId == _tenantService.TenantId && t.Id == id);
 
       return await set.Tracking(tracking).FirstOrDefaultAsync(cancellationToken);
   }
@@ -230,6 +247,8 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
       var set = DbSet<TSpecificEntity>().AsQueryable();
 
       set = set.AddIncludes(includeProperties);
+
+      set = set.Where(t => t.TenantId == _tenantService.TenantId);
 
       if (filter != null)
         set = set.Where(filter);
@@ -283,6 +302,8 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
       var set = DbSet<TSpecificEntity>().AsQueryable();
 
       set = set.AddIncludes(includeProperties);
+
+      set = set.Where(t => t.TenantId == _tenantService.TenantId);
 
       if (filter != null)
         set = set.Where(filter);
@@ -341,6 +362,8 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     where TSpecificEntity : BaseEntity
   {
     var set = DbSet<TSpecificEntity>().AsQueryable();
+
+    set = set.Where(t => t.TenantId == _tenantService.TenantId);
 
     set = set.AddIncludes(includeProperties);
 
@@ -401,6 +424,8 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
 
     set = set.AddIncludes(includeProperties);
 
+    set = set.Where(t => t.TenantId == _tenantService.TenantId);
+
     if (filter != null)
       set = set.Where(filter);
 
@@ -448,6 +473,8 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     var set = DbSet<TSpecificEntity>().AsQueryable();
 
     set = set.AddIncludes(includeProperties);
+
+    set = set.Where(t => t.TenantId == _tenantService.TenantId);
 
     if (filter != null)
       set = set.Where(filter);
@@ -507,6 +534,8 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     var set = DbSet<TSpecificEntity>().AsQueryable();
 
     set = set.AddIncludes(includeProperties);
+
+    set = set.Where(t => t.TenantId == _tenantService.TenantId);
 
     if (filter != null)
       set = set.Where(filter);
@@ -586,6 +615,8 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
 
     set = set.AddIncludes(includeProperties);
 
+    set = set.Where(t => t.TenantId == _tenantService.TenantId);
+
     if (filter != null)
       set = set.Where(filter);
 
@@ -650,14 +681,17 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity
   {
-      await ValidateExistence(entities, cancellationToken);
+    foreach (var entity in entities)
+      entity.TenantId = _tenantService.TenantId;
 
-      var now = DateTime.Now.ToUniversalTime();
+    await ValidateExistence(entities, cancellationToken);
 
-      foreach (var entity in entities)
-        entity.UpdatedAt = now;
+    var now = DateTime.Now.ToUniversalTime();
 
-      await DbSet<TSpecificEntity>().UpdateRangeAsync(entities, cancellationToken);
+    foreach (var entity in entities)
+      entity.UpdatedAt = now;
+
+    await DbSet<TSpecificEntity>().UpdateRangeAsync(entities, cancellationToken);
   }
 
   #endregion
@@ -701,9 +735,12 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity
   {
-    await ValidateExistence(entities, cancellationToken);
-
     var now = DateTime.Now.ToUniversalTime();
+
+    foreach (var entity in entities)
+      entity.TenantId = _tenantService.TenantId;
+
+    await ValidateExistence(entities, cancellationToken);
 
     foreach (var entity in entities)
     {
@@ -761,6 +798,9 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity
   {
+    foreach (var entity in entities)
+      entity.TenantId = _tenantService.TenantId;
+
     await DbSet<TSpecificEntity>().RemoveRangeAsync(entities, cancellationToken);
   }
 
