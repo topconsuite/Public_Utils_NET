@@ -23,14 +23,13 @@ namespace Telluria.Utils.Crud.Repositories;
 public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
   where TEntity : BaseEntity
 {
-  private readonly IServiceProvider _provider;
-
+  protected readonly IServiceProvider _serviceProvider;
   protected readonly ITenantService _tenantService;
   protected readonly DbContext _context;
 
   protected BaseCrudRepository(IServiceProvider provider, DbContext context)
   {
-    _provider = provider;
+    _serviceProvider = provider;
 
     _tenantService = provider.GetRequiredService<ITenantService>();
 
@@ -54,7 +53,6 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     catch (Exception e)
     {
       await _context.DisposeAsync();
-
       shouldThrow = e;
     }
 
@@ -69,14 +67,7 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
   private DbSet<TSpecificEntity> DbSet<TSpecificEntity>()
     where TSpecificEntity : BaseEntity
   {
-    var entity = _context.Set<TSpecificEntity>();
-
-    var baseEntity = (entity as BaseEntity);
-
-    if(baseEntity != null)
-      baseEntity.TenantId = _tenantService.TenantId;
-
-    return entity;
+    return _context.Set<TSpecificEntity>();
   }
 
   /// <summary>
@@ -90,24 +81,24 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity
   {
-      if (entities.Any(entity => entity.Id == Guid.Empty))
-        throw new Exception($"Id '{Guid.Empty}' not found");
+    if (entities.Any(entity => entity.Id == Guid.Empty))
+      throw new Exception($"Id '{Guid.Empty}' not found");
 
-      var entitiesIds = entities.Select(x => x.Id);
-      var oldEntities = await ListAsync<TSpecificEntity>(false, x => entitiesIds.Contains(x.Id), null, cancellationToken);
+    var entitiesIds = entities.Select(x => x.Id);
+    var oldEntities = await ListAsync<TSpecificEntity>(false, x => entitiesIds.Contains(x.Id), null, cancellationToken);
 
-      foreach (var entity in entities)
-      {
-        var oldEntity = oldEntities.FirstOrDefault(x => x.Id == entity.Id);
+    foreach (var entity in entities)
+    {
+      var oldEntity = oldEntities.FirstOrDefault(x => x.Id == entity.Id);
 
-        if (oldEntity == null)
-          throw new Exception($"Id '{entity.Id}' not found");
+      if (oldEntity == null)
+        throw new Exception($"Id '{entity.Id}' not found");
 
-        entity.CreatedAt = oldEntity.CreatedAt;
-        entity.UpdatedAt = oldEntity.UpdatedAt;
-        entity.DeletedAt = oldEntity.DeletedAt;
-        entity.Deleted = oldEntity.Deleted;
-      }
+      entity.CreatedAt = oldEntity.CreatedAt;
+      entity.UpdatedAt = oldEntity.UpdatedAt;
+      entity.DeletedAt = oldEntity.DeletedAt;
+      entity.Deleted = oldEntity.Deleted;
+    }
   }
 
   #region CREATE (ADD)
@@ -153,8 +144,6 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
 
     foreach (var entity in entities)
     {
-      entity.TenantId = _tenantService.TenantId;
-
       entity.CreatedAt = now;
       entity.UpdatedAt = now;
       entity.DeletedAt = null;
@@ -196,13 +185,12 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     Guid id, bool tracking, IEnumerable<string> includeProperties, CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity
   {
-      var set = DbSet<TSpecificEntity>().AsQueryable();
+    var set = DbSet<TSpecificEntity>().AsQueryable();
 
-      set = set.AddIncludes(includeProperties);
+    set = set.AddIncludes(includeProperties);
+    set = set.Where(t => t.Id == id);
 
-      set = set.Where(t => t.TenantId == _tenantService.TenantId && t.Id == id);
-
-      return await set.Tracking(tracking).FirstOrDefaultAsync(cancellationToken);
+    return await set.Tracking(tracking).FirstOrDefaultAsync(cancellationToken);
   }
 
   #endregion
@@ -244,16 +232,14 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity
   {
-      var set = DbSet<TSpecificEntity>().AsQueryable();
+    var set = DbSet<TSpecificEntity>().AsQueryable();
 
-      set = set.AddIncludes(includeProperties);
+    set = set.AddIncludes(includeProperties);
 
-      set = set.Where(t => t.TenantId == _tenantService.TenantId);
+    if (filter != null)
+      set = set.Where(filter);
 
-      if (filter != null)
-        set = set.Where(filter);
-
-      return await set.Tracking(tracking).FirstOrDefaultAsync(cancellationToken);
+    return await set.Tracking(tracking).FirstOrDefaultAsync(cancellationToken);
   }
 
   #endregion
@@ -299,19 +285,17 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     bool ignoreQueryFilters = false)
     where TSpecificEntity : BaseEntity
   {
-      var set = DbSet<TSpecificEntity>().AsQueryable();
+    var set = DbSet<TSpecificEntity>().AsQueryable();
 
-      set = set.AddIncludes(includeProperties);
+    set = set.AddIncludes(includeProperties);
 
-      set = set.Where(t => t.TenantId == _tenantService.TenantId);
+    if (filter != null)
+      set = set.Where(filter);
 
-      if (filter != null)
-        set = set.Where(filter);
+    if (ignoreQueryFilters)
+      return await set.IgnoreQueryFilters().Tracking(tracking).ToListAsync(cancellationToken);
 
-      if (ignoreQueryFilters)
-        return await set.IgnoreQueryFilters().Tracking(tracking).ToListAsync(cancellationToken);
-
-      return await set.Tracking(tracking).ToListAsync(cancellationToken);
+    return await set.Tracking(tracking).ToListAsync(cancellationToken);
   }
 
   #endregion
@@ -362,8 +346,6 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     where TSpecificEntity : BaseEntity
   {
     var set = DbSet<TSpecificEntity>().AsQueryable();
-
-    set = set.Where(t => t.TenantId == _tenantService.TenantId);
 
     set = set.AddIncludes(includeProperties);
 
@@ -424,8 +406,6 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
 
     set = set.AddIncludes(includeProperties);
 
-    set = set.Where(t => t.TenantId == _tenantService.TenantId);
-
     if (filter != null)
       set = set.Where(filter);
 
@@ -473,8 +453,6 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     var set = DbSet<TSpecificEntity>().AsQueryable();
 
     set = set.AddIncludes(includeProperties);
-
-    set = set.Where(t => t.TenantId == _tenantService.TenantId);
 
     if (filter != null)
       set = set.Where(filter);
@@ -534,8 +512,6 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     var set = DbSet<TSpecificEntity>().AsQueryable();
 
     set = set.AddIncludes(includeProperties);
-
-    set = set.Where(t => t.TenantId == _tenantService.TenantId);
 
     if (filter != null)
       set = set.Where(filter);
@@ -615,8 +591,6 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
 
     set = set.AddIncludes(includeProperties);
 
-    set = set.Where(t => t.TenantId == _tenantService.TenantId);
-
     if (filter != null)
       set = set.Where(filter);
 
@@ -681,9 +655,6 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity
   {
-    foreach (var entity in entities)
-      entity.TenantId = _tenantService.TenantId;
-
     await ValidateExistence(entities, cancellationToken);
 
     var now = DateTime.Now.ToUniversalTime();
@@ -735,12 +706,9 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity
   {
-    var now = DateTime.Now.ToUniversalTime();
-
-    foreach (var entity in entities)
-      entity.TenantId = _tenantService.TenantId;
-
     await ValidateExistence(entities, cancellationToken);
+
+    var now = DateTime.Now.ToUniversalTime();
 
     foreach (var entity in entities)
     {
@@ -798,9 +766,6 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity
   {
-    foreach (var entity in entities)
-      entity.TenantId = _tenantService.TenantId;
-
     await DbSet<TSpecificEntity>().RemoveRangeAsync(entities, cancellationToken);
   }
 
