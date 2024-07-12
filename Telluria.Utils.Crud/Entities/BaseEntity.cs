@@ -1,13 +1,9 @@
-﻿using System;
-using System.Text.Json.Serialization;
+using System;
 
 namespace Telluria.Utils.Crud.Entities
 {
-    public abstract class BaseEntity
+  public abstract class BaseEntity
     {
-        [JsonIgnore]
-        public Guid TenantId { get; set; }
-
         public Guid Id { get; set; } = Guid.NewGuid();
 
         public bool Deleted { get; set; } // For "Soft Delete"

@@ -9,6 +9,7 @@ using Telluria.Utils.Crud.Commands.BaseCommands;
 using Telluria.Utils.Crud.Entities;
 using Telluria.Utils.Crud.Errors;
 using Telluria.Utils.Crud.Handlers;
+using Telluria.Utils.Crud.Interfaces.Entities;
 using Telluria.Utils.Crud.QueryFilters;
 using Telluria.Utils.Crud.Repositories;
 using Telluria.Utils.Crud.Services;
@@ -161,7 +162,11 @@ public abstract class BaseCrudController<TEntity, TValidator, TRepository, TComm
     [FromQuery] IncludeRequestQuery query = null,
     CancellationToken cancellationToken = default)
   {
-    entity.TenantId = _tenantService.TenantId;
+    if (entity is IHasTenantId tenantEntity)
+    {
+      tenantEntity.TenantId = _tenantService.TenantId;
+    }
+
     entity.Id = id;
 
     var command = new BaseUpdateCommand<TEntity>(entity, query.GetIncludes(), cancellationToken);

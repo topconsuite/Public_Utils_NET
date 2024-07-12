@@ -6,8 +6,7 @@ using Telluria.Utils.Crud.Entities;
 
 namespace Telluria.Utils.Crud.Mapping;
 
-public abstract class BaseEntityMap<TEntity> : IEntityTypeConfiguration<TEntity>
-  where TEntity : BaseEntity
+public abstract class BaseEntityMap<TEntity> : IEntityTypeConfiguration<TEntity> where TEntity : BaseEntity
 {
   public virtual void Configure(EntityTypeBuilder<TEntity> builder)
   {
@@ -16,12 +15,9 @@ public abstract class BaseEntityMap<TEntity> : IEntityTypeConfiguration<TEntity>
 
   private void ApplyDefaultConfiguration(EntityTypeBuilder<TEntity> builder)
   {
-    builder.HasKey(t => new { t.Id, t.TenantId });
-    builder.HasQueryFilter(t => !t.Deleted);
   }
 
-  protected ValueConverter<TEnum, string> EnumConverter<TEnum>()
-    where TEnum : Enum
+  protected ValueConverter<TEnum, string> EnumConverter<TEnum>() where TEnum : Enum
   {
     return new ValueConverter<TEnum, string>(t => t.ToString(), t => (TEnum)Enum.Parse(typeof(TEnum), t));
   }
