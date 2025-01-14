@@ -72,9 +72,14 @@ public class TransactionService : ITransactionService
 
       T result;
 
+      var transactionOptions = new TransactionOptions
+      {
+        Timeout = TimeSpan.FromHours(1)
+      };
+
       try
       {
-        using (var scope = new TransactionScope(TransactionScopeOption.RequiresNew, option))
+        using (var scope = new TransactionScope(TransactionScopeOption.RequiresNew, transactionOptions, option))
         {
           // Execute the transactional operations
           result = await transactionalOperation();
