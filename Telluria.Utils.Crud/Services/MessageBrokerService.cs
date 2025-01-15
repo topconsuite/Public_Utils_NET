@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -21,13 +22,21 @@ public class MessageBrokerService : IMessageBrokerService
     _integrationTopic = integrationTopic;
   }
 
-  public async Task SendMessageAsync(string queueOrTopicName, string body)
+  public async Task SendMessageAsync(string queueOrTopicName, string body, Dictionary<string, string> properts = null)
   {
     await using var client = new ServiceBusClient(_connectionString);
 
     var sender = client.CreateSender(queueOrTopicName);
 
     var brokerMessage = new ServiceBusMessage(body);
+
+    if (properts != null && properts.Any())
+    {
+      foreach (var prop in properts)
+      {
+        brokerMessage.ApplicationProperties.Add(prop.Key, prop.Value);
+      }
+    }
 
     await sender.SendMessageAsync(brokerMessage);
   }
@@ -40,7 +49,7 @@ public class MessageBrokerService : IMessageBrokerService
 
     var options = new JsonSerializerOptions
     {
-      ReferenceHandler = ReferenceHandler.Preserve,
+      ReferenceHandler = ReferenceHandler.IgnoreCycles,
       WriteIndented = true
     };
 
