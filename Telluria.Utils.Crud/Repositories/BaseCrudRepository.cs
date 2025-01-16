@@ -5,10 +5,11 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Security.AccessControl;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Transactions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Telluria.Utils.Crud.Constants.Enums;
 using Telluria.Utils.Crud.Entities;
 using Telluria.Utils.Crud.GraphQL.InputTypes;
@@ -22,12 +23,16 @@ namespace Telluria.Utils.Crud.Repositories;
 public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
   where TEntity : BaseEntity
 {
-  private readonly ITransactionService _transactionService;
+  protected readonly IServiceProvider _serviceProvider;
+  protected readonly ITenantService _tenantService;
   protected readonly DbContext _context;
 
-  protected BaseCrudRepository(ITransactionService transactionService, DbContext context)
+  protected BaseCrudRepository(IServiceProvider provider, DbContext context)
   {
-    _transactionService = transactionService;
+    _serviceProvider = provider;
+
+    _tenantService = provider.GetRequiredService<ITenantService>();
+
     _context = context;
   }
 
@@ -76,24 +81,24 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity
   {
-      if (entities.Any(entity => entity.Id == Guid.Empty))
-        throw new Exception($"Id '{Guid.Empty}' not found");
+    if (entities.Any(entity => entity.Id == Guid.Empty))
+      throw new Exception($"Id '{Guid.Empty}' not found");
 
-      var entitiesIds = entities.Select(x => x.Id);
-      var oldEntities = await ListAsync<TSpecificEntity>(false, x => entitiesIds.Contains(x.Id), null, cancellationToken);
+    var entitiesIds = entities.Select(x => x.Id);
+    var oldEntities = await ListAsync<TSpecificEntity>(false, x => entitiesIds.Contains(x.Id), null, cancellationToken);
 
-      foreach (var entity in entities)
-      {
-        var oldEntity = oldEntities.FirstOrDefault(x => x.Id == entity.Id);
+    foreach (var entity in entities)
+    {
+      var oldEntity = oldEntities.FirstOrDefault(x => x.Id == entity.Id);
 
-        if (oldEntity == null)
-          throw new Exception($"Id '{entity.Id}' not found");
+      if (oldEntity == null)
+        throw new Exception($"Id '{entity.Id}' not found");
 
-        entity.CreatedAt = oldEntity.CreatedAt;
-        entity.UpdatedAt = oldEntity.UpdatedAt;
-        entity.DeletedAt = oldEntity.DeletedAt;
-        entity.Deleted = oldEntity.Deleted;
-      }
+      entity.CreatedAt = oldEntity.CreatedAt;
+      entity.UpdatedAt = oldEntity.UpdatedAt;
+      entity.DeletedAt = oldEntity.DeletedAt;
+      entity.Deleted = oldEntity.Deleted;
+    }
   }
 
   #region CREATE (ADD)
@@ -180,12 +185,12 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     Guid id, bool tracking, IEnumerable<string> includeProperties, CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity
   {
-      var set = DbSet<TSpecificEntity>().AsQueryable();
+    var set = DbSet<TSpecificEntity>().AsQueryable();
 
-      set = set.AddIncludes(includeProperties);
-      set = set.Where(t => t.Id == id);
+    set = set.AddIncludes(includeProperties);
+    set = set.Where(t => t.Id == id);
 
-      return await set.Tracking(tracking).FirstOrDefaultAsync(cancellationToken);
+    return await set.Tracking(tracking).FirstOrDefaultAsync(cancellationToken);
   }
 
   #endregion
@@ -227,14 +232,14 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity
   {
-      var set = DbSet<TSpecificEntity>().AsQueryable();
+    var set = DbSet<TSpecificEntity>().AsQueryable();
 
-      set = set.AddIncludes(includeProperties);
+    set = set.AddIncludes(includeProperties);
 
-      if (filter != null)
-        set = set.Where(filter);
+    if (filter != null)
+      set = set.Where(filter);
 
-      return await set.Tracking(tracking).FirstOrDefaultAsync(cancellationToken);
+    return await set.Tracking(tracking).FirstOrDefaultAsync(cancellationToken);
   }
 
   #endregion
@@ -280,17 +285,17 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     bool ignoreQueryFilters = false)
     where TSpecificEntity : BaseEntity
   {
-      var set = DbSet<TSpecificEntity>().AsQueryable();
+    var set = DbSet<TSpecificEntity>().AsQueryable();
 
-      set = set.AddIncludes(includeProperties);
+    set = set.AddIncludes(includeProperties);
 
-      if (filter != null)
-        set = set.Where(filter);
+    if (filter != null)
+      set = set.Where(filter);
 
-      if (ignoreQueryFilters)
-        return await set.IgnoreQueryFilters().Tracking(tracking).ToListAsync(cancellationToken);
+    if (ignoreQueryFilters)
+      return await set.IgnoreQueryFilters().Tracking(tracking).ToListAsync(cancellationToken);
 
-      return await set.Tracking(tracking).ToListAsync(cancellationToken);
+    return await set.Tracking(tracking).ToListAsync(cancellationToken);
   }
 
   #endregion
@@ -650,14 +655,14 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     IEnumerable<TSpecificEntity> entities, CancellationToken cancellationToken)
     where TSpecificEntity : BaseEntity
   {
-      await ValidateExistence(entities, cancellationToken);
+    await ValidateExistence(entities, cancellationToken);
 
-      var now = DateTime.Now.ToUniversalTime();
+    var now = DateTime.Now.ToUniversalTime();
 
-      foreach (var entity in entities)
-        entity.UpdatedAt = now;
+    foreach (var entity in entities)
+      entity.UpdatedAt = now;
 
-      await DbSet<TSpecificEntity>().UpdateRangeAsync(entities, cancellationToken);
+    await DbSet<TSpecificEntity>().UpdateRangeAsync(entities, cancellationToken);
   }
 
   #endregion
@@ -712,11 +717,11 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     }
 
     // Verify if have foreign key conflicts to continue or not with soft delete
-    await _transactionService.ExecuteTransactionAsync(async () =>
+    using (new TransactionScope(TransactionScopeOption.RequiresNew, TransactionScopeAsyncFlowOption.Enabled))
     {
       await DbSet<TSpecificEntity>().RemoveRangeAsync(entities, cancellationToken);
       await Commit(cancellationToken);
-    });
+    }
 
     await DbSet<TSpecificEntity>().UpdateRangeAsync(entities, cancellationToken);
   }

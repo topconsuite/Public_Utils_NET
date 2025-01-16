@@ -67,7 +67,7 @@ public interface IProductRepository : IBaseCrudRepository<Product>
 // Data.Repositories
 public class ProductRepository : BaseCrudRepository<Product>, IProductRepository
 {
-  public ProductRepository(ITransactionService transactionService, DbContext context) : base(transactionService, context)
+  public ProductRepository(IServiceProvider serviceProvider, DbContext context) : base(serviceProvider, context)
   {
   }
 }
