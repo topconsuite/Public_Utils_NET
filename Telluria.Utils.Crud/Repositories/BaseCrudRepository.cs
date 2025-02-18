@@ -52,6 +52,7 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     }
     catch (Exception e)
     {
+      //TODO dont use dispose async here. Rogerio
       await _context.DisposeAsync();
       shouldThrow = e;
     }
