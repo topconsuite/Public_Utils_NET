@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using System.Threading.Tasks;
 using Azure.Messaging.ServiceBus;
 using Telluria.Utils.Crud.Entities;
@@ -11,22 +13,49 @@ using Topcon.Tech.Domain.Interfaces.Services;
 
 namespace Telluria.Utils.Crud.Services;
 
-public class MessageBrokerService : IMessageBrokerService
+public class MessageBrokerService : IMessageBrokerService, IDisposable
 {
-  private readonly string _connectionString;
+  private readonly ServiceBusClient _client;
+  private static readonly ConcurrentDictionary<string, ServiceBusSender> _senders = new ConcurrentDictionary<string, ServiceBusSender>();
+  private static readonly ConcurrentDictionary<string, SemaphoreSlim> _senderLocks = new ConcurrentDictionary<string, SemaphoreSlim>();
   private readonly string _integrationTopic;
+  private bool _disposed;
 
   public MessageBrokerService(string connectionString, string integrationTopic)
   {
-    _connectionString = connectionString;
     _integrationTopic = integrationTopic;
+    _client = new ServiceBusClient(connectionString);
+  }
+
+  private async Task<ServiceBusSender> GetOrCreateSenderAsync(string queueOrTopicName)
+  {
+    if (_senders.TryGetValue(queueOrTopicName, out var existingSender))
+    {
+      return existingSender;
+    }
+
+    var semaphore = _senderLocks.GetOrAdd(queueOrTopicName, _ => new SemaphoreSlim(1, 1));
+
+    await semaphore.WaitAsync();
+    try
+    {
+      if (!_senders.ContainsKey(queueOrTopicName))
+      {
+        _senders[queueOrTopicName] = _client.CreateSender(queueOrTopicName);
+      }
+
+      return _senders[queueOrTopicName];
+    }
+    finally
+    {
+      semaphore.Release();
+    }
   }
 
   public async Task SendMessageAsync(string queueOrTopicName, string body, Dictionary<string, string> properts = null)
   {
-    await using var client = new ServiceBusClient(_connectionString);
 
-    var sender = client.CreateSender(queueOrTopicName);
+    var sender = await GetOrCreateSenderAsync(queueOrTopicName);
 
     var brokerMessage = new ServiceBusMessage(body);
 
@@ -43,9 +72,7 @@ public class MessageBrokerService : IMessageBrokerService
 
   public async Task SendIntegrationMessageAsync(IntegrationMessage integrationMessage)
   {
-    await using var client = new ServiceBusClient(_connectionString);
-
-    var sender = client.CreateSender(_integrationTopic);
+    var sender = await GetOrCreateSenderAsync(_integrationTopic);
 
     var options = new JsonSerializerOptions
     {
@@ -69,9 +96,7 @@ public class MessageBrokerService : IMessageBrokerService
 
   public async Task SendIntegrationMessageAsync(List<IntegrationMessage> integrationMessages)
   {
-    await using var client = new ServiceBusClient(_connectionString);
-
-    var sender = client.CreateSender(_integrationTopic);
+    var sender = await GetOrCreateSenderAsync(_integrationTopic);
 
     var options = new JsonSerializerOptions
     {
@@ -98,5 +123,19 @@ public class MessageBrokerService : IMessageBrokerService
     }
 
     await sender.SendMessagesAsync(brokerMessages);
+  }
+
+  public void Dispose()
+  {
+    if (!_disposed)
+    {
+      foreach (var sender in _senders.Values)
+      {
+        sender.DisposeAsync().AsTask().Wait();
+      }
+
+      _client.DisposeAsync().AsTask().Wait();
+      _disposed = true;
+    }
   }
 }
