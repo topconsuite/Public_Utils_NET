@@ -63,6 +63,7 @@ public class MessageBrokerService : IMessageBrokerService
 
     brokerMessage.ApplicationProperties.Add("TenantId", integrationMessage.TenantId);
     brokerMessage.ApplicationProperties.Add("MessageType", integrationMessage.Entity);
+    brokerMessage.SessionId = integrationMessage.TenantId;
 
     await sender.SendMessageAsync(brokerMessage);
   }
@@ -93,6 +94,7 @@ public class MessageBrokerService : IMessageBrokerService
 
       brokerMessage.ApplicationProperties.Add("TenantId", integrationMessage.TenantId);
       brokerMessage.ApplicationProperties.Add("MessageType", integrationMessage.Entity);
+      brokerMessage.SessionId = integrationMessage.TenantId;
 
       brokerMessages.Add(brokerMessage);
     }
