@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <Authors>Telluria Tecnologia</Authors>
     <Company>Telluria Tecnologia</Company>
     <Description>Generic library for easy creation of CRUD rest APIs with dotnet and EntityFrameworkCore.</Description>
@@ -15,9 +15,9 @@
     <PackageReference Include="AutoMapper" Version="10.1.1" />
     <PackageReference Include="Azure.Messaging.ServiceBus" Version="7.17.4" />
     <PackageReference Include="LinqKit.Core" Version="1.1.27" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="6.0.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="6.0.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.14" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="8.0.14" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.354" />
     <PackageReference Include="SonarAnalyzer.CSharp" Version="8.32.0.39516" />
     <PackageReference Include="FluentValidation" Version="10.3.6" />
