@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using GraphQL;
 using GraphQL.DataLoader;
+using GraphQL.MicrosoftDI;
 using GraphQL.Server;
 using GraphQL.Types;
 using Microsoft.EntityFrameworkCore;
@@ -30,13 +31,24 @@ builder.Services.AddScoped<ITenantService, TenantService>();
 builder.Services.AddSingleton<ISchema, GraphQLMainSchema>(services =>
   new GraphQLMainSchema(new GQLDI.SelfActivatingServiceProvider(services)));
 
-GQLDI.GraphQLBuilderExtensions.AddGraphQL(builder.Services)
-  .AddServer(true)
-  .ConfigureExecution(options =>
-    options.EnableMetrics = true)
-  .AddSystemTextJson()
-  .AddDataLoader()
-  .AddGraphTypes(typeof(GraphQLMainSchema).Assembly);
+builder.Services.AddSingleton<IDocumentExecuter, DocumentExecuter>();
+//builder.Services.AddSingleton<ISchema>();
+
+builder.Services.AddGraphQL(GQLBuilder => // Adicione o argumento 'builder =>'
+{
+  GQLBuilder.AddGraphTypes(typeof(GraphQLMainSchema).Assembly);
+  GQLBuilder.ConfigureExecutionOptions(options => options.EnableMetrics = true);
+});
+
+//GQLDI.GraphQLBuilderExtensions.AddGraphQL(builder.Services, GQLBuilder => // Adicione o argumento 'builder =>'
+//{
+//  GQLBuilder.AddGraphTypes(typeof(GraphQLMainSchema).Assembly);
+//});
+  //.AddServer(true)
+  //.ConfigureExecution(options =>
+  //  options.EnableMetrics = true)
+  //.AddDataLoader()
+  //.AddGraphTypes(typeof(GraphQLMainSchema).Assembly);
 
 var app = builder.Build();
 
@@ -58,7 +70,7 @@ app.UseMiddleware<TenantResolver>();
 
 app.MapControllers();
 
-app.UseGraphQL<ISchema>();
+//app.UseGraphQL<ISchema>();
 
 using (var scope = app.Services.CreateScope())
 {

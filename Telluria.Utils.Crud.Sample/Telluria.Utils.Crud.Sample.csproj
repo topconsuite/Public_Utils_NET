@@ -8,9 +8,8 @@
 
   <ItemGroup>
     <PackageReference Include="FluentValidation" Version="10.3.6" />
-    <PackageReference Include="GraphQL" Version="4.7.1" />
-    <PackageReference Include="GraphQL.MicrosoftDI" Version="4.7.1" />
-    <PackageReference Include="GraphQL.Server.Transports.AspNetCore.SystemTextJson" Version="5.2.0" />
+    <PackageReference Include="GraphQL" Version="5.4.0" />
+    <PackageReference Include="GraphQL.MicrosoftDI" Version="5.4.0" />
     <PackageReference Include="GraphQL.Server.Ui.GraphiQL" Version="8.2.0" />
     <PackageReference Include="GraphQL.Server.Ui.Playground" Version="8.2.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.14">
