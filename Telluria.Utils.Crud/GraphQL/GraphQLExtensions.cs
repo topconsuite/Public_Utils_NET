@@ -15,7 +15,8 @@ namespace Telluria.Utils.Crud.GraphQL
         return includes.ToArray();
 
       var result = source?.SubFields?[key];
-      var selections = result?.SelectionSet?.Selections;
+      //var selections = result?.SelectionSet?.Selections;
+      var selections = result.Value.Field.SelectionSet.Selections;
 
       // Get the includes (If has any)
       if (selections != null)

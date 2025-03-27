@@ -1,7 +1,5 @@
 using System.Text.Json.Serialization;
 using GraphQL;
-using GraphQL.DataLoader;
-using GraphQL.Server;
 using GraphQL.Types;
 using Microsoft.EntityFrameworkCore;
 using Telluria.Utils.Crud.Middlewares;
@@ -22,6 +20,7 @@ builder.Services.AddSwaggerGen();
 // Dependency Injection
 builder.Services.AddDbContext<AppDbContext>();
 builder.Services.AddScoped<DbContext, AppDbContext>();
+builder.Services.AddScoped<ITransactionService, TransactionService>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductCommandHandler, ProductCommandHandler>();
 builder.Services.AddScoped<ITenantService, TenantService>();
@@ -30,13 +29,22 @@ builder.Services.AddScoped<ITenantService, TenantService>();
 builder.Services.AddSingleton<ISchema, GraphQLMainSchema>(services =>
   new GraphQLMainSchema(new GQLDI.SelfActivatingServiceProvider(services)));
 
-GQLDI.GraphQLBuilderExtensions.AddGraphQL(builder.Services)
-  .AddServer(true)
-  .ConfigureExecution(options =>
-    options.EnableMetrics = true)
-  .AddSystemTextJson()
-  .AddDataLoader()
-  .AddGraphTypes(typeof(GraphQLMainSchema).Assembly);
+//GQLDI.GraphQLBuilderExtensions.AddGraphQL(builder.Services)
+//  .AddServer(true)
+//  .ConfigureExecution(options =>
+//    options.EnableMetrics = true)
+//  .AddSystemTextJson()
+//  .AddDataLoader()
+//  .AddGraphTypes(typeof(GraphQLMainSchema).Assembly);
+
+builder.Services.AddGraphQL(b => b
+    .AddAutoSchema<ISchema>() // schema
+    .ConfigureExecutionOptions(options =>
+      options.EnableMetrics = true)
+    .AddSystemTextJson()
+    .AddDataLoader()
+    .AddGraphTypes(typeof(GraphQLMainSchema).Assembly));   // serializer
+
 
 var app = builder.Build();
 
@@ -58,7 +66,8 @@ app.UseMiddleware<TenantResolver>();
 
 app.MapControllers();
 
-app.UseGraphQL<ISchema>();
+app.UseGraphQL("");
+//app.UseGraphQL<ISchema>();
 
 using (var scope = app.Services.CreateScope())
 {
