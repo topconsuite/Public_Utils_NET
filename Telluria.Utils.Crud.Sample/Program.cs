@@ -29,9 +29,8 @@ builder.Services.AddScoped<IProductCommandHandler, ProductCommandHandler>();
 builder.Services.AddScoped<ITenantService, TenantService>();
 
 // Add schema and register GraphQL
-//builder.Services.AddSingleton<ISchema, GraphQLMainSchema>(services =>
-//  new GraphQLMainSchema(new SelfActivatingServiceProvider(services)));
-//builder.Services.AddSingleton<Query>();
+builder.Services.AddSingleton<ISchema, GraphQLMainSchema>(services =>
+  new GraphQLMainSchema(new SelfActivatingServiceProvider(services)));
 
 //GQLDI.GraphQLBuilderExtensions.AddGraphQL(builder.Services)
 //  .AddServer(true)
@@ -42,7 +41,6 @@ builder.Services.AddScoped<ITenantService, TenantService>();
 //  .AddGraphTypes(typeof(GraphQLMainSchema).Assembly);
 
 builder.Services.AddGraphQL(b => b
-    .AddAutoSchema<GraphQLMainSchema>() // schema
     .ConfigureExecutionOptions(options =>
       options.EnableMetrics = true)
     .AddSystemTextJson()
