@@ -23,19 +23,12 @@ namespace Telluria.Utils.Crud.Repositories;
 public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
   where TEntity : BaseEntity
 {
-  protected readonly IServiceProvider _serviceProvider;
-  protected readonly ITenantService _tenantService;
   protected readonly DbContext _context;
 
-  protected BaseCrudRepository(IServiceProvider provider, DbContext context)
+  protected BaseCrudRepository(DbContext context)
   {
-    _serviceProvider = provider;
-
-    _tenantService = provider.GetRequiredService<ITenantService>();
-
     _context = context;
   }
-
   /// <summary>
   ///   Commit changes to the database.
   /// </summary>
