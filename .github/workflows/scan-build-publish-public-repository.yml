@@ -17,17 +17,17 @@ jobs:
   sonarqube:
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/dotnet/sdk:6.0
+      image: mcr.microsoft.com/dotnet/sdk:8.0
     timeout-minutes: 60
     continue-on-error: true
     env:
       SONAR_USER_HOME: "${{ github.workspace }}/Telluria.Utils.Crud/.sonar"
     steps:
-      - uses: actions/checkout@v3.5.0
+      - uses: actions/checkout@v4
         with:
           fetch-depth: '0'
       - name: Cache SonarCloud packages
-        uses: actions/cache@v3.3.1
+        uses: actions/cache@v4
         with:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
@@ -56,16 +56,16 @@ jobs:
   nuget-publish:
     runs-on: ubuntu-latest
     container:
-      image: mcr.microsoft.com/dotnet/sdk:6.0
+      image: mcr.microsoft.com/dotnet/sdk:8.0
     timeout-minutes: 60
     continue-on-error: true
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Set up .NET
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '6.0.x'
+          dotnet-version: '8.0.x'
       - name: Restore dependencies
         run: dotnet restore
       - name: Build
