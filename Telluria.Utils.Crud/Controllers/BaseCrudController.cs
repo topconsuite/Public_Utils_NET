@@ -24,11 +24,8 @@ public abstract class BaseCrudController<TEntity, TValidator, TRepository, TComm
   where TRepository : IBaseCrudRepository<TEntity>
   where TCommandHandler : IBaseCrudCommandHandler<TEntity, TValidator, TRepository>
 {
-  private readonly ITenantService _tenantService;
-
-  protected BaseCrudController(ITenantService tenantService)
+  protected BaseCrudController()
   {
-    _tenantService = tenantService;
   }
 
   [NonAction]
@@ -161,9 +158,7 @@ public abstract class BaseCrudController<TEntity, TValidator, TRepository, TComm
     [FromQuery] IncludeRequestQuery query = null,
     CancellationToken cancellationToken = default)
   {
-    entity.TenantId = _tenantService.TenantId;
     entity.Id = id;
-
     var command = new BaseUpdateCommand<TEntity>(entity, query.GetIncludes(), cancellationToken);
     var result = await handler.HandleAsync(command);
 

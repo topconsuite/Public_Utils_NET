@@ -13,23 +13,23 @@ namespace Telluria.Utils.Crud.Sample
 
   public class RootMutation : ObjectGraphType
   {
-    public RootMutation()
+    public RootMutation(IServiceProvider provider)
     {
       Name = "Mutations";
       Description = "Mutations for the Topcon Customer GraphQL API";
 
-      Field<ProductMutation>("Product", resolve: context => new ProductMutation());
+      Field<ProductMutation>("Product", resolve: context => provider.GetRequiredService<ProductMutation>());
     }
   }
 
   public class RootQuery : ObjectGraphType
   {
-    public RootQuery()
+    public RootQuery(IServiceProvider provider)
     {
       Name = "Queries";
       Description = "Queries for the Topcon Customer GraphQL API";
 
-      Field<ProductQuery>("Product", resolve: context => new ProductQuery());
+      Field<ProductQuery>("Product", resolve: context => provider.GetRequiredService<ProductQuery>());
     }
   }
 }
