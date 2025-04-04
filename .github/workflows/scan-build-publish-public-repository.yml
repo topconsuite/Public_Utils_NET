@@ -13,6 +13,10 @@ env:
   SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
   NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
   NUGET_SERVER: ${{ secrets.NUGET_SERVER }}
+  # Define o diretório do projeto para evitar repetição
+  PROJECT_DIR: Telluria.Utils.Crud
+  PROJECT_FILE_PATH: Telluria.Utils.Crud/Telluria.Utils.Crud.csproj # Caminho relativo à raiz do repositório
+
 jobs:
   sonarqube:
     runs-on: ubuntu-latest
@@ -21,9 +25,14 @@ jobs:
     timeout-minutes: 60
     continue-on-error: true
     env:
-      SONAR_USER_HOME: "${{ github.workspace }}/Telluria.Utils.Crud/.sonar"
+      # Ajuste o SONAR_USER_HOME se o diretório .sonar não deve ficar dentro do código fonte
+      SONAR_USER_HOME: "${{ github.workspace }}/${{ env.PROJECT_DIR }}/.sonar"
+      # Define a variável de ambiente para desabilitar telemetria do .NET (opcional, boa prática em CI)
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: 'true'
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4 # Versão atualizada
         with:
           fetch-depth: '0'
       - name: Cache SonarCloud packages
@@ -32,48 +41,83 @@ jobs:
           path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
-      - name: Install prerequisites
-        run: |
-          wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
-          dpkg -i packages-microsoft-prod.deb
-          rm packages-microsoft-prod.deb
-          apt-get update
-          apt-get install -y apt-transport-https
-          apt-get update
-          apt-get install -y dotnet-sdk-5.0
-          apt-get install --yes openjdk-11-jre
-      - name: Install SonarScanner
+
+      # Etapa de instalação de pré-requisitos removida (Java e .NET 5 redundantes)
+      # Se o SonarScanner falhar por falta de Java, descomente e ajuste a linha abaixo:
+      # - name: Install Java (if needed for SonarScanner)
+      #   run: sudo apt-get update && sudo apt-get install -y openjdk-17-jre
+
+      - name: Install SonarScanner tool
         run: dotnet tool install --global dotnet-sonarscanner
+
       - name: Add dotnet tools to PATH
         run: echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
-      - name: Run SonarScanner
+
+      - name: Run SonarScanner analysis
+        # O diretório de trabalho é a raiz do checkout por padrão
         run: |
-          cd Telluria.Utils.Crud
-          export VERSION=$(cat "Telluria.Utils.Crud/Telluria.Utils.Crud.csproj" | grep '<AssemblyVersion>' | sed 's/<[^>]*>//g')
-          dotnet sonarscanner begin /k:"Telluria-Utils-.NET-CRUD-" /v:"$VERSION" /d:sonar.login="$SONAR_TOKEN" /d:"sonar.host.url=$SONAR_HOST_URL"
-          dotnet build
+          # Extrai a versão do .csproj (método original mantido, mas pode ser frágil)
+          # Certifique-se que o caminho para o .csproj está correto
+          export VERSION=$(grep '<AssemblyVersion>' "${{ env.PROJECT_FILE_PATH }}" | sed 's/<[^>]*>//g' | tr -d '[:space:]')
+          echo "Detected Version: $VERSION"
+
+          # Inicia o SonarScanner
+          # Adicionado /d:sonar.cs.dotcover.reportsPaths=**/coverage.cobertura.xml se você gerar relatórios de cobertura
+          dotnet sonarscanner begin \
+            /k:"Telluria-Utils-.NET-CRUD-" \
+            /v:"$VERSION" \
+            /d:sonar.login="$SONAR_TOKEN" \
+            /d:sonar.host.url="$SONAR_HOST_URL" \
+            /d:sonar.projectBaseDir="${{ github.workspace }}" \
+            /d:sonar.sources="${{ env.PROJECT_DIR }}" \
+            /d:sonar.exclusions="**/*.dll,**/*.exe" # Exemplo de exclusões comuns
+
+          # Builda a solução/projeto - ajuste o caminho se necessário
+          # Se você tiver um .sln na raiz: dotnet build YourSolution.sln -c Release
+          # Se for só o projeto:
+          dotnet build "${{ env.PROJECT_FILE_PATH }}" -c Release
+
+          # Finaliza o SonarScanner
           dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN"
   nuget-publish:
     runs-on: ubuntu-latest
     container:
       image: mcr.microsoft.com/dotnet/sdk:8.0
     timeout-minutes: 60
-    continue-on-error: true
+    continue-on-error: true # Considere remover se uma falha no publish deve falhar o workflow
+    env:
+      # Define a variável de ambiente para desabilitar telemetria do .NET (opcional, boa prática em CI)
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+      DOTNET_NOLOGO: 'true'
+      # Reutiliza as variáveis definidas no nível do workflow
+      PROJECT_DIR: ${{ env.PROJECT_DIR }}
+      PROJECT_FILE_PATH: ${{ env.PROJECT_FILE_PATH }}
+      PACKAGE_OUTPUT_DIR: package # Diretório de saída para o pacote nuget
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
+        uses: actions/checkout@v4 # Versão atualizada
+
+      # A action setup-dotnet foi REMOVIDA pois o contêiner já tem o .NET 8 SDK
+
       - name: Restore dependencies
-        run: dotnet restore
-      - name: Build
-        run: dotnet build --no-restore
+        run: dotnet restore "${{ env.PROJECT_FILE_PATH }}"
+
+      - name: Build project
+        run: dotnet build "${{ env.PROJECT_FILE_PATH }}" --configuration Release --no-restore
+
+      - name: Pack NuGet package
+        run: |
+          # Remove diretório de pacote antigo, se existir
+          rm -rf ${{ env.PACKAGE_OUTPUT_DIR }}
+
+          # Cria o pacote nuget
+          dotnet pack "${{ env.PROJECT_FILE_PATH }}" --configuration Release --output ${{ env.PACKAGE_OUTPUT_DIR }} --no-build
+
       - name: Publish NuGet package
         run: |
-          cd Telluria.Utils.Crud
-          rm -rf package 2> /dev/null
-          dotnet pack Telluria.Utils.Crud.csproj -c Release -o package
-          cd package
-          dotnet nuget push Telluria.Utils.Crud.*.nupkg --api-key "${{ secrets.NUGET_API_KEY }}" --source "${{ secrets.NUGET_SERVER }}" --skip-duplicate
+          # Entra no diretório do pacote
+          cd ${{ env.PACKAGE_OUTPUT_DIR }}
+
+          # Publica todos os pacotes .nupkg encontrados
+          dotnet nuget push "*.nupkg" --api-key "${{ env.NUGET_API_KEY }}" --source "${{ env.NUGET_SERVER }}" --skip-duplicate
