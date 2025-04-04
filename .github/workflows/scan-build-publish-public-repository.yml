@@ -13,9 +13,6 @@ env:
   SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
   NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
   NUGET_SERVER: ${{ secrets.NUGET_SERVER }}
-  # Define o diretório do projeto para evitar repetição
-  PROJECT_DIR: Telluria.Utils.Crud
-  PROJECT_FILE_PATH: Telluria.Utils.Crud/Telluria.Utils.Crud.csproj # Caminho relativo à raiz do repositório
 
 jobs:
   sonarqube:
@@ -25,9 +22,7 @@ jobs:
     timeout-minutes: 60
     continue-on-error: true
     env:
-      # Ajuste o SONAR_USER_HOME se o diretório .sonar não deve ficar dentro do código fonte
-      SONAR_USER_HOME: "${{ github.workspace }}/${{ env.PROJECT_DIR }}/.sonar"
-      # Define a variável de ambiente para desabilitar telemetria do .NET (opcional, boa prática em CI)
+      # Variáveis de ambiente específicas do job, se necessário (mas não para definir caminhos baseados em env global)
       DOTNET_CLI_TELEMETRY_OPTOUT: '1'
       DOTNET_NOLOGO: 'true'
     steps:
@@ -54,31 +49,29 @@ jobs:
         run: echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
 
       - name: Run SonarScanner analysis
-        # O diretório de trabalho é a raiz do checkout por padrão
+        # Navega para o diretório do projeto ANTES de rodar os comandos
+        working-directory: ./Telluria.Utils.Crud # Define o diretório de trabalho para os comandos seguintes
         run: |
-          # Extrai a versão do .csproj (método original mantido, mas pode ser frágil)
-          # Certifique-se que o caminho para o .csproj está correto
-          export VERSION=$(grep '<AssemblyVersion>' "${{ env.PROJECT_FILE_PATH }}" | sed 's/<[^>]*>//g' | tr -d '[:space:]')
+          # Extrai a versão do .csproj (método original mantido)
+          # Agora roda a partir do diretório Telluria.Utils.Crud
+          export VERSION=$(grep '<AssemblyVersion>' Telluria.Utils.Crud.csproj | sed 's/<[^>]*>//g' | tr -d '[:space:]')
           echo "Detected Version: $VERSION"
 
-          # Inicia o SonarScanner
-          # Adicionado /d:sonar.cs.dotcover.reportsPaths=**/coverage.cobertura.xml se você gerar relatórios de cobertura
+          # Inicia o SonarScanner - os caminhos são relativos ao working-directory ou use /d:sonar.projectBaseDir=.
           dotnet sonarscanner begin \
             /k:"Telluria-Utils-.NET-CRUD-" \
             /v:"$VERSION" \
-            /d:sonar.login="$SONAR_TOKEN" \
-            /d:sonar.host.url="$SONAR_HOST_URL" \
-            /d:sonar.projectBaseDir="${{ github.workspace }}" \
-            /d:sonar.sources="${{ env.PROJECT_DIR }}" \
-            /d:sonar.exclusions="**/*.dll,**/*.exe" # Exemplo de exclusões comuns
+            /d:sonar.login="${{ env.SONAR_TOKEN }}" \
+            /d:sonar.host.url="${{ env.SONAR_HOST_URL }}" \
+            /d:sonar.sources="." # Analisa o diretório atual (Telluria.Utils.Crud)
 
-          # Builda a solução/projeto - ajuste o caminho se necessário
-          # Se você tiver um .sln na raiz: dotnet build YourSolution.sln -c Release
-          # Se for só o projeto:
-          dotnet build "${{ env.PROJECT_FILE_PATH }}" -c Release
+          # Builda o projeto (estamos no diretório do projeto)
+          # A build pode ser feita aqui ou antes do begin, dependendo da necessidade de análise
+          dotnet build Telluria.Utils.Crud.csproj --configuration Release --no-restore
 
           # Finaliza o SonarScanner
-          dotnet sonarscanner end /d:sonar.login="$SONAR_TOKEN"
+          dotnet sonarscanner end /d:sonar.login="${{ env.SONAR_TOKEN }}"
+
   nuget-publish:
     runs-on: ubuntu-latest
     container:
@@ -89,10 +82,8 @@ jobs:
       # Define a variável de ambiente para desabilitar telemetria do .NET (opcional, boa prática em CI)
       DOTNET_CLI_TELEMETRY_OPTOUT: '1'
       DOTNET_NOLOGO: 'true'
-      # Reutiliza as variáveis definidas no nível do workflow
-      PROJECT_DIR: ${{ env.PROJECT_DIR }}
-      PROJECT_FILE_PATH: ${{ env.PROJECT_FILE_PATH }}
-      PACKAGE_OUTPUT_DIR: package # Diretório de saída para o pacote nuget
+      PROJECT_PATH: Telluria.Utils.Crud/Telluria.Utils.Crud.csproj # Caminho do projeto relativo à raiz
+      PACKAGE_OUTPUT_DIR: ./Telluria.Utils.Crud/package # Diretório de saída relativo à raiz
 
     steps:
       - name: Checkout code
@@ -101,23 +92,20 @@ jobs:
       # A action setup-dotnet foi REMOVIDA pois o contêiner já tem o .NET 8 SDK
 
       - name: Restore dependencies
-        run: dotnet restore "${{ env.PROJECT_FILE_PATH }}"
+        run: dotnet restore "${{ env.PROJECT_PATH }}"
 
       - name: Build project
-        run: dotnet build "${{ env.PROJECT_FILE_PATH }}" --configuration Release --no-restore
+        run: dotnet build "${{ env.PROJECT_PATH }}" --configuration Release --no-restore
 
       - name: Pack NuGet package
         run: |
           # Remove diretório de pacote antigo, se existir
-          rm -rf ${{ env.PACKAGE_OUTPUT_DIR }}
+          rm -rf "${{ env.PACKAGE_OUTPUT_DIR }}"
 
-          # Cria o pacote nuget
-          dotnet pack "${{ env.PROJECT_FILE_PATH }}" --configuration Release --output ${{ env.PACKAGE_OUTPUT_DIR }} --no-build
+          # Cria o pacote nuget especificando o projeto e a saída
+          dotnet pack "${{ env.PROJECT_PATH }}" --configuration Release --output "${{ env.PACKAGE_OUTPUT_DIR }}" --no-build
 
       - name: Publish NuGet package
         run: |
-          # Entra no diretório do pacote
-          cd ${{ env.PACKAGE_OUTPUT_DIR }}
-
-          # Publica todos os pacotes .nupkg encontrados
-          dotnet nuget push "*.nupkg" --api-key "${{ env.NUGET_API_KEY }}" --source "${{ env.NUGET_SERVER }}" --skip-duplicate
+          # Publica todos os pacotes .nupkg encontrados no diretório de saída
+          dotnet nuget push "${{ env.PACKAGE_OUTPUT_DIR }}/*.nupkg" --api-key "${{ env.NUGET_API_KEY }}" --source "${{ env.NUGET_SERVER }}" --skip-duplicate
