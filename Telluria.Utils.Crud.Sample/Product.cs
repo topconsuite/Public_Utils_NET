@@ -92,7 +92,7 @@ public interface IProductRepository : IBaseCrudRepository<Product>
 // Data.Repositories
 public class ProductRepository : BaseCrudRepository<Product>, IProductRepository
 {
-  public ProductRepository(IServiceProvider serviceProvider, DbContext context) : base(serviceProvider, context)
+  public ProductRepository(DbContext context) : base(context)
   {
   }
 }
@@ -108,14 +108,6 @@ public class ProductCommandHandler : BaseCrudCommandHandler<Product, ProductVali
 {
   public ProductCommandHandler(ITransactionService transactionService, IProductRepository repository) : base(transactionService, repository)
   {
-  }
-
-  public override Task<ICommandResult<Product>> HandleAsync(BaseCreateCommand<Product> command)
-  {
-    //command.Data.Id = Guid.NewGuid();
-    //command.Data.Types = new List<ProductString>() { new ProductString() {  ProductGuid = command.Data.Id, Type = "Teste", Product = command.Data}, new ProductString() { ProductGuid = command.Data.Id, Type = "Teste2", Product = command.Data } };
-
-    return base.HandleAsync(command);
   }
 
   protected override string GetSuccessMessage(EBaseCrudCommands command)
@@ -144,7 +136,7 @@ public class ProductCommandHandler : BaseCrudCommandHandler<Product, ProductVali
 public class
   ProductsController : BaseCrudController<Product, ProductValidator, IProductRepository, IProductCommandHandler>
 {
-  public ProductsController(ITenantService tenantService) : base(tenantService)
+  public ProductsController() : base()
   {
   }
 }
