@@ -23,19 +23,12 @@ namespace Telluria.Utils.Crud.Repositories;
 public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
   where TEntity : BaseEntity
 {
-  protected readonly IServiceProvider _serviceProvider;
-  protected readonly ITenantService _tenantService;
   protected readonly DbContext _context;
 
-  protected BaseCrudRepository(IServiceProvider provider, DbContext context)
+  protected BaseCrudRepository(DbContext context)
   {
-    _serviceProvider = provider;
-
-    _tenantService = provider.GetRequiredService<ITenantService>();
-
     _context = context;
   }
-
   /// <summary>
   ///   Commit changes to the database.
   /// </summary>
@@ -52,6 +45,7 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
     }
     catch (Exception e)
     {
+      //TODO dont use dispose async here. Rogerio
       await _context.DisposeAsync();
       shouldThrow = e;
     }
@@ -98,6 +92,7 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
       entity.UpdatedAt = oldEntity.UpdatedAt;
       entity.DeletedAt = oldEntity.DeletedAt;
       entity.Deleted = oldEntity.Deleted;
+      entity.TenantId = oldEntity.TenantId;
     }
   }
 
