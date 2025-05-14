@@ -22,11 +22,15 @@ namespace Telluria.Utils.Crud.GraphQL
       string errorCode = null!,
       ECommandResultStatus status = ECommandResultStatus.ERROR)
     {
-      return new ExecutionError(message ?? _message, new Dictionary<string, string>
+      var executionError = new ExecutionError(message ?? _message);
+
+      executionError.AddExtension("data", new Dictionary<string, string>
       {
         { "errorCode", errorCode ?? _errorCode },
         { "status", status.ToString() }
       });
+
+      return executionError;
     }
   }
 }
