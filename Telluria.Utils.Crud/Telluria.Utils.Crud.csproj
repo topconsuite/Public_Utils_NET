@@ -10,6 +10,7 @@
     <AssemblyVersion>3.0.1</AssemblyVersion>
     <FileVersion>3.0.1</FileVersion>
     <RepositoryUrl>https://gitlab.com/t3105/telluria-utils-.net.git</RepositoryUrl>
+    <PackageId>TopconSuite.Utils.Crud</PackageId>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="10.1.1" />
