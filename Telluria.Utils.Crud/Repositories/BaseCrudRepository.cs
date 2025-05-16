@@ -92,7 +92,6 @@ public abstract class BaseCrudRepository<TEntity> : IBaseCrudRepository<TEntity>
       entity.UpdatedAt = oldEntity.UpdatedAt;
       entity.DeletedAt = oldEntity.DeletedAt;
       entity.Deleted = oldEntity.Deleted;
-      entity.TenantId = oldEntity.TenantId;
     }
   }
 

@@ -20,7 +20,7 @@ namespace Telluria.Utils.Crud.Sample
     {
       modelBuilder.ApplyConfiguration(new ProductMap());
 
-      modelBuilder.Entity<Product>().HasQueryFilter(a => a.TenantId == _tenantId);
+      modelBuilder.Entity<Product>().HasQueryFilter(a => !a.Deleted);
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

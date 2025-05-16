@@ -16,7 +16,7 @@ public abstract class BaseEntityMap<TEntity> : IEntityTypeConfiguration<TEntity>
 
   private void ApplyDefaultConfiguration(EntityTypeBuilder<TEntity> builder)
   {
-    builder.HasKey(t => new { t.Id, t.TenantId });
+    builder.HasKey(t => new { t.Id });
     builder.HasQueryFilter(t => !t.Deleted);
   }
 
